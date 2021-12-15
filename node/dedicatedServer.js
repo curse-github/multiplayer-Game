@@ -1,0 +1,68 @@
+var floor = {
+    "MessageType":"Create",
+    "ObjName":"Floor",
+    "Pos":{
+        "x":0.0,
+        "y":-0.125,
+        "z":0.0
+    },
+    "Scale":{
+        "x":50.0,
+        "y":0.25,
+        "z":50.0
+    },
+    "Rot":{
+        "x":0.0,
+        "y":45.0,
+        "z":0.0
+    },
+    "ObjScripts":[
+        "UnityEngine.MeshFilter",
+        "UnityEngine.MeshRenderer",
+        "UnityEngine.BoxCollider"
+    ],
+    "ObjScriptVars":[
+        "1","mesh","Default.Mesh.Cube,fbx",
+        "1","materials[0]","Default.Mat.Default-Diffuse,mat"
+    ]
+}
+var cube = {
+    "MessageType":"Create",
+    "ObjName":"Cube2",
+    "ObjParent":"",
+    "Pos":{
+        "x":0.0,
+        "y":5.0,
+        "z":0.0
+    },
+    "Scale":{
+        "x":1.0,
+        "y":1.0,
+        "z":1.0
+    },
+    "Rot":{
+        "x":30.0,
+        "y":0.0,
+        "z":30.0
+    },
+    "ObjFindName":"",
+    "ObjScripts":[
+        "UnityEngine.MeshFilter",
+        "UnityEngine.MeshRenderer",
+        "UnityEngine.Rigidbody",
+        "UnityEngine.BoxCollider",
+        "NetworkObj"
+    ],
+    "ObjScriptVars":[
+        "1","mesh","Default.Mesh.Cube,fbx",
+        "1","materials[0]","Default.Mat.Default-Diffuse,mat",
+        "1","collisionDetectionMode","ContinuousDynamic"
+    ]
+}
+var jump = {
+    "MessageType":"Modify",
+    "ObjFindName":"Cube2",
+    "ModScriptVars":[
+        "UnityEngine.Rigidbody","2","velocity","(0,10,0)","angularVelocity","(0,10,0)"
+    ]
+}
