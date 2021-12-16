@@ -8,65 +8,32 @@ using System;
 
 public class ServerReceiver : MonoBehaviour
 {
-    public static Mesh defCube;
-    List<string> toProcess = new List<string>();
-    void Start()
+    private static ServerReceiver _instance;
+    public static ServerReceiver Instance { get { return _instance; } }
+    private void Awake()
     {
-        GameObject obj1 = new GameObject();
-        obj1.transform.position = new Vector3(101001010101010,10,1010100101);
-        print(obj1.AddComponent<Rigidbody>().angularVelocity);
-        MessageData data = new MessageData();
-        data.MessageType = "Create";
-        data.ObjName = "Floor";
-        data.Pos = new Vector3(0,0.25f/-2,0);
-        data.Scale = new Vector3(50,0.25f,50);
-        data.Rot = new Vector3(0,45,0);
-        data.ObjScripts = new string[] {
-            "UnityEngine.MeshFilter",
-            "UnityEngine.MeshRenderer",
-            "UnityEngine.BoxCollider"
-        };
-        data.ObjScriptVars = new string[]{
-            "1","mesh","Default.Mesh.Cube,fbx",
-            "1","materials[0]","Default.Mat.Default-Diffuse,mat"
-        };
-        toProcess.Add(data.encodeMessage());
-
-        data = new MessageData();
-        data.MessageType = "Create";
-        data.ObjName = "Cube2";
-        data.Pos = new Vector3(0,5,0);
-        data.Scale = new Vector3(1,1,1);
-        data.Rot = new Vector3(30,0,30);
-        data.ObjScripts = new string[] {
-            "UnityEngine.MeshFilter",
-            "UnityEngine.MeshRenderer",
-            "UnityEngine.Rigidbody",
-            "UnityEngine.BoxCollider",
-            "NetworkObj"
-        };
-        data.ObjScriptVars = new string[]{
-            "1","mesh","Default.Mesh.Cube,fbx",
-            "1","materials[0]","Default.Mat.Default-Diffuse,mat",
-            "1","collisionDetectionMode","ContinuousDynamic"
-        };
-        toProcess.Add(data.encodeMessage());
+        if (_instance != null && _instance != this)
+        {
+            Destroy(this.gameObject);
+        } else {
+            _instance = this;
+        }
         
-        Proccess();
-        StartCoroutine(waiter());
     }
-    IEnumerator waiter()
-    {
-        yield return new WaitForSeconds(2);
-        string msg = "{\"MessageType\":\"Modify\",\"ObjFindName\":\"Cube2\",\"ModScriptVars\":[\"UnityEngine.Rigidbody\",\"2\",\"velocity\",\"(0,10,0)\",\"angularVelocity\",\"(0,10,0)\"]}";
-        toProcess.Add(msg);
+
+    public List<string> toProcess = new List<string>();
+    public bool isProcessing = false;
+    public string test = "";
+    public void Proccess(string message) {
+        toProcess.Add(message);
         Proccess();
     }
     public void Proccess() {
-        if (toProcess.Count <= 0) { return; }
-        //print(toProcess[0]);
+        if (toProcess.Count <= 0 || isProcessing) { return; }
+        isProcessing = true;
         MessageData decoded = MessageData.decodeMessage(toProcess[0]);
         toProcess.RemoveAt(0);
+        if (decoded.MessageType == null) { return; }
         if (decoded.MessageType == "Create")
         {
             GameObject obj = new GameObject();
@@ -83,17 +50,17 @@ public class ServerReceiver : MonoBehaviour
                 }
             }
             //change position
-            if (decoded.Pos != null)
+            if (decoded.Pos != null && decoded.Pos != new Vector3(0.0114f,0,0))
             {
                 obj.transform.localPosition = decoded.Pos;
             } else { obj.transform.localPosition = new Vector3(0,0,0); }
             //change scale
-            if (decoded.Scale != null)
+            if (decoded.Scale != null && decoded.Scale != new Vector3(0.0114f,0,0))
             {
                 obj.transform.localScale = decoded.Scale;
             } else { obj.transform.localScale = new Vector3(1,1,1); }
             //change rotation
-            if (decoded.Rot != null)
+            if (decoded.Rot != null && decoded.Rot != new Vector3(0.0114f,0,0))
             {
                 obj.transform.localEulerAngles = decoded.Rot;
             } else { obj.transform.localEulerAngles = new Vector3(0,0,0); }
@@ -116,73 +83,20 @@ public class ServerReceiver : MonoBehaviour
                                     if (prop == null) {
                                         FieldInfo prop2 = type.GetField(split[0]);
                                         object[] value = (object[])prop2.GetValue(comp);
-                                        if (decoded.ObjScriptVars[j+1].StartsWith("Statics.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = Statics.getValue(decoded.ObjScriptVars[j+1].Split("Statics.")[1]);
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = Resources.GetBuiltinResource<Mesh>(decoded.ObjScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",","."));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = GetMat(decoded.ObjScriptVars[j+1].Split("Default.Mat.")[1].Replace(",","."));
-                                        } else if (prop2.FieldType.ToString() == "UnityEngine.Vector3") {
-                                            string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                            Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                            value[int.Parse(split[1].Split("]")[0])] = vec;
-                                        } else if (prop2.FieldType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                            value[int.Parse(split[1].Split("]")[0])] = Enum.Parse(typeof(CollisionDetectionMode), decoded.ObjScriptVars[j+1]);
-                                        } else { value[int.Parse(split[1].Split("]")[0])] = decoded.ObjScriptVars[j+1]; }
+                                        value[int.Parse(split[1].Split("]")[0])] = stringToObj(decoded.ObjScriptVars[j+1],prop2.FieldType);
                                         prop2.SetValue(comp,value);
                                     } else {
                                         object[] value = (object[])prop.GetValue(comp);
-                                        if (decoded.ObjScriptVars[j+1].StartsWith("Statics.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = Statics.getValue(decoded.ObjScriptVars[j+1].Split("Statics.")[1]);
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = Resources.GetBuiltinResource<Mesh>(decoded.ObjScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",","."));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = GetMat(decoded.ObjScriptVars[j+1].Split("Default.Mat.")[1].Replace(",","."));
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.Vector3") {
-                                            string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                            Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                            value[int.Parse(split[1].Split("]")[0])] = vec;
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                            value[int.Parse(split[1].Split("]")[0])] = Enum.Parse(typeof(CollisionDetectionMode), decoded.ObjScriptVars[j+1]);
-                                        } else { value[int.Parse(split[1].Split("]")[0])] = decoded.ObjScriptVars[j+1]; }
+                                        value[int.Parse(split[1].Split("]")[0])] = stringToObj(decoded.ObjScriptVars[j+1],prop.PropertyType);
                                         prop.SetValue(comp,value);
                                     }
                                 } else {
                                     PropertyInfo prop = type.GetProperty(decoded.ObjScriptVars[j]);
                                     if (prop == null) {
                                         FieldInfo prop2 = type.GetField(decoded.ObjScriptVars[j]);
-                                        if (decoded.ObjScriptVars[j+1].StartsWith("Statics.")) {
-                                            prop2.SetValue(comp,Statics.getValue(decoded.ObjScriptVars[j+1].Split("Statics.")[1]));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                            //Cube.fbx
-                                            prop2.SetValue(comp,Resources.GetBuiltinResource<Mesh>(decoded.ObjScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",",".")));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                            //Sprites-Default.mat
-                                            //Default-Diffuse.mat
-                                            prop2.SetValue(comp,GetMat(decoded.ObjScriptVars[j+1].Split("Default.Mat.")[1].Replace(",",".")));
-                                        } else if (prop2.FieldType.ToString() == "UnityEngine.Vector3") {
-                                            string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                            Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                            prop2.SetValue(comp,vec);
-                                        } else if (prop2.FieldType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                            prop2.SetValue(comp,Enum.Parse(typeof(CollisionDetectionMode), decoded.ObjScriptVars[j+1]));
-                                        } else { prop2.SetValue(comp,decoded.ObjScriptVars[j+1]); }
+                                        prop2.SetValue(comp,stringToObj(decoded.ObjScriptVars[j+1],prop2.FieldType));
                                     } else {
-                                        if (decoded.ObjScriptVars[j+1].StartsWith("Statics.")) {
-                                            prop.SetValue(comp,Statics.getValue(decoded.ObjScriptVars[j+1].Split("Statics.")[1]));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                            //Cube.fbx
-                                            prop.SetValue(comp,Resources.GetBuiltinResource<Mesh>(decoded.ObjScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",",".")));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                            //Sprites-Default.mat
-                                            prop.SetValue(comp,GetMat(decoded.ObjScriptVars[j+1].Split("Default.Mat.")[1].Replace(",",".")));
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.Vector3") {
-                                            string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                            Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                            prop.SetValue(comp,vec);
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                            prop.SetValue(comp,Enum.Parse(typeof(CollisionDetectionMode), decoded.ObjScriptVars[j+1]));
-                                        } else { prop.SetValue(comp,decoded.ObjScriptVars[j+1]); }
+                                        prop.SetValue(comp,stringToObj(decoded.ObjScriptVars[j+1],prop.PropertyType));
                                     }
                                 }
 
@@ -197,7 +111,8 @@ public class ServerReceiver : MonoBehaviour
                 }
             }
             
-        } else if (decoded.MessageType == "Modify" && decoded.ObjFindName != null) {
+        } else if (decoded.MessageType == "Modify" && decoded.ObjFindName != null)
+        {
             GameObject obj = GameObject.Find(decoded.ObjFindName);
             //change object name
             if (decoded.ObjName != null && decoded.ObjName != "")
@@ -245,73 +160,20 @@ public class ServerReceiver : MonoBehaviour
                                     if (prop == null) {
                                         FieldInfo prop2 = type.GetField(split[0]);
                                         object[] value = (object[])prop2.GetValue(comp);
-                                        if (decoded.ObjScriptVars[j+1].StartsWith("Statics.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = Statics.getValue(decoded.ObjScriptVars[j+1].Split("Statics.")[1]);
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = Resources.GetBuiltinResource<Mesh>(decoded.ObjScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",","."));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = GetMat(decoded.ObjScriptVars[j+1].Split("Default.Mat.")[1].Replace(",","."));
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.Vector3") {
-                                            string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                            Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                            value[int.Parse(split[1].Split("]")[0])] = vec;
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                            value[int.Parse(split[1].Split("]")[0])] = Enum.Parse(typeof(CollisionDetectionMode), decoded.ModScriptVars[j+1]);
-                                        } else { print(prop2.FieldType.ToString()); value[int.Parse(split[1].Split("]")[0])] = decoded.ObjScriptVars[j+1]; }
+                                        value[int.Parse(split[1].Split("]")[0])] = stringToObj(decoded.ObjScriptVars[j+1],prop2.FieldType);
                                         prop2.SetValue(comp,value);
                                     } else {
                                         object[] value = (object[])prop.GetValue(comp);
-                                        if (decoded.ObjScriptVars[j+1].StartsWith("Statics.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = Statics.getValue(decoded.ObjScriptVars[j+1].Split("Statics.")[1]);
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = Resources.GetBuiltinResource<Mesh>(decoded.ObjScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",","."));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                            value[int.Parse(split[1].Split("]")[0])] = GetMat(decoded.ObjScriptVars[j+1].Split("Default.Mat.")[1].Replace(",","."));
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.Vector3") {
-                                            string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                            Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                            value[int.Parse(split[1].Split("]")[0])] = vec;
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                            value[int.Parse(split[1].Split("]")[0])] = Enum.Parse(typeof(CollisionDetectionMode), decoded.ModScriptVars[j+1]);
-                                        } else { print(prop.PropertyType.ToString()); value[int.Parse(split[1].Split("]")[0])] = decoded.ObjScriptVars[j+1]; }
+                                        value[int.Parse(split[1].Split("]")[0])] = stringToObj(decoded.ObjScriptVars[j+1],prop.PropertyType);
                                         prop.SetValue(comp,value);
                                     }
                                 } else {
                                     PropertyInfo prop = type.GetProperty(decoded.ObjScriptVars[j]);
                                     if (prop == null) {
                                         FieldInfo prop2 = type.GetField(decoded.ObjScriptVars[j]);
-                                        if (decoded.ObjScriptVars[j+1].StartsWith("Statics.")) {
-                                            prop2.SetValue(comp,Statics.getValue(decoded.ObjScriptVars[j+1].Split("Statics.")[1]));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                            //Cube.fbx
-                                            prop2.SetValue(comp,Resources.GetBuiltinResource<Mesh>(decoded.ObjScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",",".")));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                            //Sprites-Default.mat
-                                            //Default-Diffuse.mat
-                                            prop2.SetValue(comp,GetMat(decoded.ObjScriptVars[j+1].Split("Default.Mat.")[1].Replace(",",".")));
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.Vector3") {
-                                            string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                            Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                            prop2.SetValue(comp,vec);
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                            prop2.SetValue(comp,Enum.Parse(typeof(CollisionDetectionMode), decoded.ModScriptVars[j+1]));
-                                        } else { print(prop2.FieldType.ToString()); prop2.SetValue(comp,decoded.ObjScriptVars[j+1]); }
+                                        prop2.SetValue(comp,stringToObj(decoded.ObjScriptVars[j+1],prop2.FieldType));
                                     } else {
-                                        if (decoded.ObjScriptVars[j+1].StartsWith("Statics.")) {
-                                            prop.SetValue(comp,Statics.getValue(decoded.ObjScriptVars[j+1].Split("Statics.")[1]));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                            //Cube.fbx
-                                            prop.SetValue(comp,Resources.GetBuiltinResource<Mesh>(decoded.ObjScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",",".")));
-                                        } else if (decoded.ObjScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                            //Sprites-Default.mat
-                                            prop.SetValue(comp,GetMat(decoded.ObjScriptVars[j+1].Split("Default.Mat.")[1].Replace(",",".")));
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.Vector3") {
-                                            string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                            Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                            prop.SetValue(comp,vec);
-                                        } else if (prop.PropertyType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                            prop.SetValue(comp,Enum.Parse(typeof(CollisionDetectionMode), decoded.ModScriptVars[j+1]));
-                                        } else { print(prop.PropertyType.ToString()); prop.SetValue(comp,decoded.ObjScriptVars[j+1]); }
+                                        prop.SetValue(comp,stringToObj(decoded.ObjScriptVars[j+1],prop.PropertyType));
                                     }
                                 }
 
@@ -345,73 +207,20 @@ public class ServerReceiver : MonoBehaviour
                             if (prop == null) {
                                 FieldInfo prop2 = type.GetField(split[0]);
                                 object[] value = (object[])prop2.GetValue(comp);
-                                if (decoded.ModScriptVars[j+1].StartsWith("Statics.")) {
-                                    value[int.Parse(split[1].Split("]")[0])] = Statics.getValue(decoded.ModScriptVars[j+1].Split("Statics.")[1]);
-                                } else if (decoded.ModScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                    value[int.Parse(split[1].Split("]")[0])] = Resources.GetBuiltinResource<Mesh>(decoded.ModScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",","."));
-                                } else if (decoded.ModScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                    value[int.Parse(split[1].Split("]")[0])] = GetMat(decoded.ModScriptVars[j+1].Split("Default.Mat.")[1].Replace(",","."));
-                                } else if (prop2.FieldType.ToString() == "UnityEngine.Vector3") {
-                                    string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                    Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                    value[int.Parse(split[1].Split("]")[0])] = vec;
-                                } else if (prop2.FieldType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                    value[int.Parse(split[1].Split("]")[0])] = Enum.Parse(typeof(CollisionDetectionMode), decoded.ModScriptVars[j+1]);
-                                } else { print(prop2.FieldType.ToString()); value[int.Parse(split[1].Split("]")[0])] = decoded.ModScriptVars[j+1]; }
+                                value[int.Parse(split[1].Split("]")[0])] = stringToObj(decoded.ModScriptVars[j+1],prop2.FieldType);
                                 prop2.SetValue(comp,value);
                             } else {
                                 object[] value = (object[])prop.GetValue(comp);
-                                if (decoded.ModScriptVars[j+1].StartsWith("Statics.")) {
-                                    value[int.Parse(split[1].Split("]")[0])] = Statics.getValue(decoded.ModScriptVars[j+1].Split("Statics.")[1]);
-                                } else if (decoded.ModScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                    value[int.Parse(split[1].Split("]")[0])] = Resources.GetBuiltinResource<Mesh>(decoded.ModScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",","."));
-                                } else if (decoded.ModScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                    value[int.Parse(split[1].Split("]")[0])] = GetMat(decoded.ModScriptVars[j+1].Split("Default.Mat.")[1].Replace(",","."));
-                                } else if (prop.PropertyType.ToString() == "UnityEngine.Vector3") {
-                                    string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                    Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                    value[int.Parse(split[1].Split("]")[0])] = vec;
-                                } else if (prop.PropertyType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                    value[int.Parse(split[1].Split("]")[0])] = Enum.Parse(typeof(CollisionDetectionMode), decoded.ModScriptVars[j+1]);
-                                } else { print(prop.PropertyType.ToString()); value[int.Parse(split[1].Split("]")[0])] = decoded.ModScriptVars[j+1]; }
+                                value[int.Parse(split[1].Split("]")[0])] = stringToObj(decoded.ModScriptVars[j+1],prop.PropertyType);
                                 prop.SetValue(comp,value);
                             }
                         } else {
                             PropertyInfo prop = type.GetProperty(decoded.ModScriptVars[j]);
                             if (prop == null) {
                                 FieldInfo prop2 = type.GetField(decoded.ModScriptVars[j]);
-                                if (decoded.ModScriptVars[j+1].StartsWith("Statics.")) {
-                                    prop2.SetValue(comp,Statics.getValue(decoded.ModScriptVars[j+1].Split("Statics.")[1]));
-                                } else if (decoded.ModScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                    //Cube.fbx
-                                    prop2.SetValue(comp,Resources.GetBuiltinResource<Mesh>(decoded.ModScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",",".")));
-                                } else if (decoded.ModScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                    //Sprites-Default.mat
-                                    //Default-Diffuse.mat
-                                    prop2.SetValue(comp,GetMat(decoded.ModScriptVars[j+1].Split("Default.Mat.")[1].Replace(",",".")));
-                                } else if (prop2.FieldType.ToString() == "UnityEngine.Vector3") {
-                                    string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                    Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                    prop2.SetValue(comp,vec);
-                                } else if (prop2.FieldType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                    prop2.SetValue(comp,Enum.Parse(typeof(CollisionDetectionMode), decoded.ModScriptVars[j+1]));
-                                } else { print(prop2.FieldType.ToString()); prop2.SetValue(comp,decoded.ModScriptVars[j+1]); }
+                                prop2.SetValue(comp,stringToObj(decoded.ModScriptVars[j+1],prop2.FieldType));
                             } else {
-                                if (decoded.ModScriptVars[j+1].StartsWith("Statics.")) {
-                                    prop.SetValue(comp,Statics.getValue(decoded.ModScriptVars[j+1].Split("Statics.")[1]));
-                                } else if (decoded.ModScriptVars[j+1].StartsWith("Default.Mesh.")) {
-                                    //Cube.fbx
-                                    prop.SetValue(comp,Resources.GetBuiltinResource<Mesh>(decoded.ModScriptVars[j+1].Split("Default.Mesh.")[1].Replace(",",".")));
-                                } else if (decoded.ModScriptVars[j+1].StartsWith("Default.Mat.")) {
-                                    //Sprites-Default.mat
-                                    prop.SetValue(comp,GetMat(decoded.ModScriptVars[j+1].Split("Default.Mat.")[1].Replace(",",".")));
-                                } else if (prop.PropertyType.ToString() == "UnityEngine.Vector3") {
-                                    string[] split2 = decoded.ModScriptVars[j+1].Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
-                                    Vector3 vec = new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
-                                    prop.SetValue(comp,vec);
-                                } else if (prop.PropertyType.ToString() == "UnityEngine.CollisionDetectionMode") {
-                                    prop.SetValue(comp,Enum.Parse(typeof(CollisionDetectionMode), decoded.ModScriptVars[j+1]));
-                                } else { print(prop.PropertyType.ToString()); prop.SetValue(comp,decoded.ModScriptVars[j+1]); }
+                                prop.SetValue(comp,stringToObj(decoded.ModScriptVars[j+1],prop.PropertyType));
                             }
                         }
                         j++;
@@ -419,8 +228,18 @@ public class ServerReceiver : MonoBehaviour
                     index = j+1;
                 }
             }
+        } else if ((decoded.MessageType == "Delete" || decoded.MessageType == "Remove" || decoded.MessageType == "Destroy") && decoded.ObjFindName != null) {
+            GameObject obj = GameObject.Find(decoded.ObjFindName);
+            GameObject.Destroy(obj);
         }
-        Proccess();
+        isProcessing = false;
+    }
+    private void Update()
+    {
+        //print(toProcess.Count);
+        if (!isProcessing && toProcess.Count > 0) {
+            Proccess();
+        }
     }
     public static Type GetType(string TypeName)
     {
@@ -468,5 +287,37 @@ public class ServerReceiver : MonoBehaviour
         #else
             return Resources.GetBuiltinResource<Material>(name);
         #endif
+    }
+    public object stringToObj(string one, Type propType) {
+        if (one.StartsWith("Statics.")) {
+            return Statics.getValue(one.Split("Statics.")[1]);
+        } else if (one.StartsWith("Default.Mesh.")) {
+            //Cube.fbx
+            //Capsule.fbx
+            return Resources.GetBuiltinResource<Mesh>(one.Split("Default.Mesh.")[1].Replace(",","."));
+        } else if (one.StartsWith("Default.Mat.")) {
+            //Sprites-Default.mat
+            return GetMat(one.Split("Default.Mat.")[1].Replace(",","."));
+        } else if (propType.ToString() == "UnityEngine.Vector3") {
+            string[] split2 = one.Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
+            return new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
+        } else if (propType.ToString() == "UnityEngine.CollisionDetectionMode") {
+            //doesnt work :(
+            //print()//(typeof(Enum)).GetTypeInfo());
+            return Enum.Parse(typeof(CollisionDetectionMode), one);
+        } else if (propType.ToString() == "System.String") {
+            return one;
+        } else if (propType.ToString() == "System.Int32") {
+            return int.Parse(one);
+        } else if (propType.ToString() == "System.Single") {
+            return float.Parse(one);
+        } else if (propType.ToString() == "System.Double") {
+            return double.Parse(one);
+        } else if (propType.ToString() == "System.Boolean") {
+            return bool.Parse(one);
+        } else {
+            print("Unsupported type: " + propType.ToString());
+            return null;
+        }
     }
 }

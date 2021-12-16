@@ -7,7 +7,6 @@ using System;
 public class Statics : MonoBehaviour {
     private static Statics _instance;
     public static Statics Instance { get { return _instance; } }
-
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -18,6 +17,9 @@ public class Statics : MonoBehaviour {
         }
         
     }
+
+    public bool isPaused = false;
+
     public static object getValue(string property) {
         switch (property) {
             case(""):
