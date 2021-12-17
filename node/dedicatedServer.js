@@ -212,17 +212,35 @@ function receiveMes(msg) {
             var name = msg.ObjFindName;
             var scene = 0
 
+            //console.log(msg.modifyId + ": " + msg.ObjFindName);
             var closestDis = 99999999999999999;
-            var closestInd = -1;
+            var closestInd = -2;
             for (var i = 0; i < wsS.length; i++) {
-                if (wsS[i] == null || playerindexes[i] == null) { continue; }
-                var pos = scenes[scene].dynamics[playerindexes[i]].obj.Pos;
-                var pos2 = scenes[scene].dynamics[scenes[scene].dynamicNames[name]].obj.Pos;
+                if (wsS[i] == null || scenes[scene].dynamicNames["Player" + msg.modifyId] == null) { console.log(i + " was null."); continue; }
+                var pos = scenes[scene].dynamics[scenes[scene].dynamicNames["Player" + i]].obj.Pos;
+                var lst = name.split("/");
+                var pos2 = lib.Vector3.Zero();
+                for (var j = 0; j < lst.length; j++) {
+                    var str = lst[0];
+                    for (var l = 1; l <= j ; l++) {
+                        str += "/" + lst[l];
+                    }
+                    if (scenes[scene].dynamics[scenes[scene].dynamicNames[str]] != null) {
+                        var pos1 = scenes[scene].dynamics[scenes[scene].dynamicNames[str]].obj.Pos
+                        pos2.x = pos2.x + pos1.x;
+                        pos2.y = pos2.y + pos1.y;
+                        pos2.z = pos2.z + pos1.z;
+                    }
+                }
                 var dis = lib.distance(pos,pos2);
-                if (dis < closestDis) { closestDis = dis; closestInd = i; }
+                console.log((i+1) + ".dis = " + dis + ".");
+                if (dis < closestDis) {
+                    closestDis = dis; closestInd = i;
+                }
             }
-            if (closestInd == -1 || closestInd != msg.modifyId) { return false; }
-
+            console.log((closestInd+1) + " is closer.");
+            if (closestInd < 0 || closestInd != msg.modifyId) { console.log("Player" + (Number(msg.modifyId)+1) + " tried to move object " + scenes[scene].dynamics[scenes[scene].dynamicNames[name]].obj.ObjName + " but player " + (closestInd+1) + " was closer.\n\n"); return false; }
+            console.log("\n")
             if (scenes[scene].dynamicNames[name] != null) {
                 if (msg.ObjName != null && msg.ObjName != "" && msg.ObjName != name) {
                     scenes[scene].dynamicNames[msg.ObjName] = scenes[scene].dynamicNames[name];

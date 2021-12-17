@@ -92,7 +92,7 @@ public class PlayerController : MonoBehaviour {
                 rotdata.MessageType = "Modify";
                 rotdata.ObjFindName = transform.name + "/Main Camera";
                 rotdata.Rot = Camera.main.transform.eulerAngles;
-                rotdata.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
+                rotdata.modifyId = transform.name.Split("Player")[1];
             }
         }
         //code for sending data about the player to the server
@@ -102,11 +102,11 @@ public class PlayerController : MonoBehaviour {
             posdata.MessageType = "Modify";
             posdata.ObjFindName = transform.name;
             posdata.Pos = transform.position;
-            posdata.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
+            posdata.modifyId = transform.name.Split("Player")[1];
             if (rotationChange) {
                 MessageData data = new MessageData();
                 data.list = new MessageData[] { posdata, rotdata };
-                data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
+                data.modifyId = transform.name.Split("Player")[1];
                 WebsocketHandler.Instance.send(data.encodeMessage());
             } else {
                 WebsocketHandler.Instance.send(posdata.encodeMessage());

@@ -5,7 +5,6 @@ using UnityEngine;
 public class NetworkObj : MonoBehaviour
 {
     public string name = "";
-    public int skip = 0;
     public Vector3 oldPos;
     public Vector3 oldRot;
     public Vector3 oldSca;
@@ -13,8 +12,6 @@ public class NetworkObj : MonoBehaviour
     bool positionChange = false;
     bool rotationChange = false;
     bool scaleChange = false;
-
-    bool skipping = false;
     void Awake()
     {
         oldPos = transform.position;
@@ -27,8 +24,6 @@ public class NetworkObj : MonoBehaviour
     }
     void Update()
     {
-        if (skip > 0) { skip--; skipping = true; return; } else { skipping = false; }
-        if (!skipping) {
             if (Mathf.Abs(oldRot.x - transform.localEulerAngles.x) >= 0.1 || Mathf.Abs(oldRot.y - transform.localEulerAngles.y) >= 0.1 || Mathf.Abs(oldRot.z - transform.localEulerAngles.z) >= 0.1) {
                 rotationChange = true;
                 oldRot = transform.localEulerAngles;
@@ -59,7 +54,6 @@ public class NetworkObj : MonoBehaviour
                 WebsocketHandler.Instance.send(data.encodeMessage());
                 //print("Moved!");
             }
-        }
         positionChange = false;
         rotationChange = false;
         scaleChange = false;
