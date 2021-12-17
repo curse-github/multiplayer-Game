@@ -4,15 +4,58 @@ using UnityEngine;
 
 public class NetworkObj : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    public string name = "";
+    Vector3 oldPos;
+    Vector3 oldRot;
+    Vector3 oldSca;
 
-    // Update is called once per frame
+    bool positionChange = false;
+    bool rotationChange = false;
+    bool scaleChange = false;
+    void Awake()
+    {   
+        oldPos = transform.position;
+        oldRot = transform.localEulerAngles;
+        oldSca = transform.localScale;
+
+        if (name == "") {
+            name = transform.name;
+        }
+    }
     void Update()
     {
-        
+        if (Mathf.Abs(oldRot.x - transform.localEulerAngles.x) >= 0.1 || Mathf.Abs(oldRot.y - transform.localEulerAngles.y) >= 0.1 || Mathf.Abs(oldRot.z - transform.localEulerAngles.z) >= 0.1) {
+            rotationChange = true;
+            oldRot = transform.localEulerAngles;
+        }
+        if ((oldPos - transform.position).magnitude >= 0.1) {
+            positionChange = true;
+            oldPos = transform.position;
+        }
+        if (oldSca != transform.localScale) {
+            positionChange = true;
+            oldSca = transform.localScale;
+        }
+        if (rotationChange || positionChange) {
+            MessageData data = new MessageData();
+            data.MessageType = "Modify";
+            data.ObjFindName = transform.name;
+            int len = 4 + ((rotationChange && positionChange) ? 2 : 0);
+            if (positionChange) {
+                data.Pos = transform.position;
+            }
+            if (rotationChange) {
+                data.Rot = transform.localEulerAngles;
+            }
+            if (scaleChange) {
+                data.Scale = transform.localScale;
+            }
+            data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
+            WebsocketHandler.Instance.send(data.encodeMessage());
+            //print("sent: " + data.encodeMessage());
+        }
+        positionChange = false;
+        rotationChange = false;
+        scaleChange = false;
     }
 }

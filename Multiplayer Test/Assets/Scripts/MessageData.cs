@@ -11,8 +11,8 @@ public class MessageData {
     public Vector3 Rot = new Vector3(0.0114f,0,0);
     public string ObjFindName = null;
     public string[] ObjScripts = null;
-    public string[] ObjScriptVars = null;
     public string[] ModScriptVars = null;
+    public string modifyId;
 
     public static MessageData decodeMessage(string message) {
         return JsonUtility.FromJson<MessageData>(message);
