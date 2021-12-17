@@ -39,6 +39,7 @@ scenes[0].dynamicCount = 4
 var Pinging = false;
 var wsS = [];
 var playerAlive = [];
+var playerindexes = [];
 
 var ObjectIndex = 0;
 
@@ -67,6 +68,7 @@ wss.on('connection', websocket => {
     scenes[scene].dynamics.push(PlayerDyn);
     var key = scenes[scene].dynamics[scenes[scene].dynamics.length-1].obj.ObjName;
     scenes[scene].dynamicNames[key] = scenes[scene].dynamicCount;
+    playerindexes[playerid] = scenes[scene].dynamicCount;
 
     //Set Camera Network Object
     var Camera = new lib.MessageData("Create","Main Camera", "Player" + playerid, new lib.Vector3(0, 1, 0), null, null, null, null, null);
@@ -104,7 +106,7 @@ wss.on('connection', websocket => {
     Player.Send(websocket);
     
     Modify("Main Camera", null, "Player" + playerid, new lib.Vector3(0, 1, 0), null, null, null, [
-        "UnityEngine.Camera", "1", "nearClipPlane", "1"
+        "UnityEngine.Camera", "1", "nearClipPlane", "0.3"
     ], websocket);
     Modify("Directional Light", null, null, null, null, null, null, ["UnityEngine.Light", "1", "intensity", "0.25"], websocket);
 
@@ -145,6 +147,7 @@ wss.on('connection', websocket => {
                             Destroy("Player" + index, wsS[i]);
                         }
 						wsS[index] = null;
+                        playerindexes[index] = null;
                         startingPos.y -= 4;
 					}
 				}
@@ -208,6 +211,18 @@ function receiveMes(msg) {
         } else if (msg.MessageType == "Modify") {
             var name = msg.ObjFindName;
             var scene = 0
+
+            var closestDis = 99999999999999999;
+            var closestInd = -1;
+            for (var i = 0; i < wsS.length; i++) {
+                if (wsS[i] == null || playerindexes[i] == null) { continue; }
+                var pos = scenes[scene].dynamics[playerindexes[i]].obj.Pos;
+                var pos2 = scenes[scene].dynamics[scenes[scene].dynamicNames[name]].obj.Pos;
+                var dis = lib.distance(pos,pos2);
+                if (dis < closestDis) { closestDis = dis; closestInd = i; }
+            }
+            if (closestInd == -1 || closestInd != msg.modifyId) { return false; }
+
             if (scenes[scene].dynamicNames[name] != null) {
                 if (msg.ObjName != null && msg.ObjName != "" && msg.ObjName != name) {
                     scenes[scene].dynamicNames[msg.ObjName] = scenes[scene].dynamicNames[name];

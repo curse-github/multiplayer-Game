@@ -57,7 +57,7 @@ public class NetworkObj : MonoBehaviour
                 }
                 data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
                 WebsocketHandler.Instance.send(data.encodeMessage());
-                print("Moved!");
+                //print("Moved!");
             }
         }
         positionChange = false;

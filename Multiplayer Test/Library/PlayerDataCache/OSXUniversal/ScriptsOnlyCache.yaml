@@ -19,7 +19,6 @@ ScriptsOnlyBuild:
     UnityEngine.UI.dll:
     - UnityEngine.EventSystems.EventSystem
     - UnityEngine.EventSystems.StandaloneInputModule
-    - UnityEngine.UI.Button
     - UnityEngine.UI.CanvasScaler
     - UnityEngine.UI.GraphicRaycaster
     - UnityEngine.UI.Image
@@ -67,8 +66,6 @@ ScriptsOnlyBuild:
       Script: {instanceID: 2696}
     - Class: 114
       Script: {instanceID: 2878}
-    - Class: 114
-      Script: {instanceID: 2966}
     - Class: 114
       Script: {instanceID: 3436}
     - Class: 114

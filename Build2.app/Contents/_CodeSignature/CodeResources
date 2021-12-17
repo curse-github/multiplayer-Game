@@ -6,7 +6,7 @@
 	<dict>
 		<key>Resources/Data/Managed/Assembly-CSharp.dll</key>
 		<data>
-		cErYdkFZruic/gZYMtKRR6xy7ns=
+		dczO5r2ziNWPPWJ/OUgpEFWfnAI=
 		</data>
 		<key>Resources/Data/Managed/Mono.Security.dll</key>
 		<data>
@@ -380,10 +380,6 @@
 		<data>
 		+i9QhUczBBkaRoTaWziTUQWQYXg=
 		</data>
-		<key>Resources/Data/Resources/unity_builtin_extra</key>
-		<data>
-		GLfYQ4rUKoFAkZAPrZX4YdATrFU=
-		</data>
 		<key>Resources/Data/RuntimeInitializeOnLoads.json</key>
 		<data>
 		0uLZKz5Op1erRRv+CS9Q8MFC2qo=
@@ -400,37 +396,9 @@
 		<data>
 		o8TlrqjHcbbjiokFo6xeBb9WQDo=
 		</data>
-		<key>Resources/Data/globalgamemanagers</key>
+		<key>Resources/Data/data.unity3d</key>
 		<data>
-		497F4u3fQ7ZBDYfHuVLI/3SSfLA=
-		</data>
-		<key>Resources/Data/globalgamemanagers.assets</key>
-		<data>
-		ziU7/ZpVMjJ9qoIP8wHMPv/KXeo=
-		</data>
-		<key>Resources/Data/level0</key>
-		<data>
-		nj4qpTRW5IGWNvZQotsFSeTd1X4=
-		</data>
-		<key>Resources/Data/level0.resS</key>
-		<data>
-		v9+qKQKm2RI/b/Q4X9FbRqkYrEw=
-		</data>
-		<key>Resources/Data/resources.assets</key>
-		<data>
-		RXYgZHmlRyPe/hD0B43WGwv+xQU=
-		</data>
-		<key>Resources/Data/resources.assets.resS</key>
-		<data>
-		pAjobenZPlGAHDez1xuBGh9iymI=
-		</data>
-		<key>Resources/Data/sharedassets0.assets</key>
-		<data>
-		moc317lxc6EMqVu64iXqli9LqSc=
-		</data>
-		<key>Resources/Data/sharedassets0.assets.resS</key>
-		<data>
-		xpAp84YKxs9T8gcP75HiyTjSaxs=
+		ce3Tq/v/LrfNnftmIcB81lDCf18=
 		</data>
 		<key>Resources/DefaultPreferences.plist</key>
 		<data>
@@ -617,7 +585,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			4pWGU8nF/gnzvnds5km8XR1r3YFb/rQaNMEp8OGsASw=
+			CWX5y75V9oZs5bf8Ue8tgCfEMNpOnBfsdiHxHaDpzzM=
 			</data>
 		</dict>
 		<key>Resources/Data/Managed/Mono.Security.dll</key>
@@ -1271,13 +1239,6 @@
 			M5x0AgfzCNnoawOk1F0p8XxSR20ezaiK+p9geWbSJvw=
 			</data>
 		</dict>
-		<key>Resources/Data/Resources/unity_builtin_extra</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			vQffMy30O/wE4RnHcQddoPgHNhYGLGjXsVV2BjrD4Oc=
-			</data>
-		</dict>
 		<key>Resources/Data/RuntimeInitializeOnLoads.json</key>
 		<dict>
 			<key>hash2</key>
@@ -1306,60 +1267,11 @@
 			yS+BrmlM620vWa17NfFPs09JGvv9GO1AxcizQESygIw=
 			</data>
 		</dict>
-		<key>Resources/Data/globalgamemanagers</key>
+		<key>Resources/Data/data.unity3d</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			V+xnI+ZZx4R2WfKqiSIDeaxZf3wPBugVNShBPCeJ2oU=
-			</data>
-		</dict>
-		<key>Resources/Data/globalgamemanagers.assets</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			lRj1XXaXQGv2wEvzJ+/e7h6QWDrnDI4CKwq0H/WEUY4=
-			</data>
-		</dict>
-		<key>Resources/Data/level0</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			XM47ZMy5n3Kxw1n5oApIPH6aX58lifPWivUGgNKsak0=
-			</data>
-		</dict>
-		<key>Resources/Data/level0.resS</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			kG6IEu7gjXXrPhlyzHCAbcPfWefTiA+/5mEFIfK+ztA=
-			</data>
-		</dict>
-		<key>Resources/Data/resources.assets</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			nPEdc7MMtxFfci+sDO+1oEU8y41CVBFktTqZWarwP0I=
-			</data>
-		</dict>
-		<key>Resources/Data/resources.assets.resS</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			JLZtZQmj1qWfyPLprW4jjqsJm6B0f+2PQoEIe7dXV7A=
-			</data>
-		</dict>
-		<key>Resources/Data/sharedassets0.assets</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			XeV+ah/wQuv3r9P0ArdskGsIQ7gyiu2lAESpY3Y/OPs=
-			</data>
-		</dict>
-		<key>Resources/Data/sharedassets0.assets.resS</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			WuMkhJ/fE0xlqKpA+Bq1SjnrBFKTgoqDGM75WRuIwlU=
+			EggHJPliAgh8se6UUbBNYRXQ1KmXdgZfPR7UD0MBHIk=
 			</data>
 		</dict>
 		<key>Resources/DefaultPreferences.plist</key>
