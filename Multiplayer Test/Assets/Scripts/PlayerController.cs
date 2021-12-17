@@ -18,6 +18,8 @@ public class PlayerController : MonoBehaviour {
 
     public Vector3 oldPos;
     Vector3 oldRot;
+    bool rotationChange;
+
     private void Awake() {
         if (Instance == null) {
             Instance = this;
@@ -47,6 +49,7 @@ public class PlayerController : MonoBehaviour {
         } else { onGround = false; }
 
         bool value = Statics.Instance.isPaused;
+        MessageData rotdata = new MessageData();
         if (!value) {
             float moveHorizontal = Input.GetAxis ("Horizontal");
             float moveVertical = Input.GetAxis ("Vertical");
@@ -63,36 +66,53 @@ public class PlayerController : MonoBehaviour {
             if (Input.GetKeyDown(KeyCode.Space) && onGround) {
                 rigid.velocity += new Vector3(0,10,0);
             }
+            if (Input.GetKeyDown(KeyCode.H)) {
+                MessageData data = new MessageData();
+                data.MessageType = "Create";
+                data.ObjScripts = new string[] {
+                    "UnityEngine.MeshFilter",
+                    "UnityEngine.MeshRenderer",
+                    "UnityEngine.BoxCollider",
+                    "UnityEngine.Rigidbody",
+                    "NetworkObj"
+                };
+                data.ModScriptVars = new string[] {
+                    "UnityEngine.MeshFilter","1","mesh","Default.Mesh.Cube,fbx",
+                    "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse"
+                };
+                data.Pos = transform.position + Camera.main.transform.forward*3;
+                data.Scale = new Vector3(2,2,2);
+                WebsocketHandler.Instance.send(data.encodeMessage());
+            }
 
             //rotation is put in here as it shouldnt change while paused anyways
-            bool rotationChange = false;
             if (transform.childCount > 0 && (Mathf.Abs(oldRot.y - Camera.main.transform.eulerAngles.y) >= 0.1 || Mathf.Abs(oldRot.x - Camera.main.transform.eulerAngles.x) >= 0.1)) {
                 rotationChange = true;
                 oldRot = Camera.main.transform.eulerAngles;
+                rotdata.MessageType = "Modify";
+                rotdata.ObjFindName = transform.name + "/Main Camera";
+                rotdata.Rot = Camera.main.transform.eulerAngles;
+                rotdata.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
             }
+        }
+        //code for sending data about the player to the server
+        if ((oldPos - transform.position).magnitude >= 0.1) {
+            oldPos = transform.position;
+            MessageData posdata = new MessageData();
+            posdata.MessageType = "Modify";
+            posdata.ObjFindName = transform.name;
+            posdata.Pos = transform.position;
+            posdata.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
             if (rotationChange) {
                 MessageData data = new MessageData();
-                data.MessageType = "Modify";
-                data.ObjFindName = transform.name + "/Main Camera";
-                data.Rot = Camera.main.transform.eulerAngles;
+                data.list = new MessageData[] { posdata, rotdata };
                 data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
                 WebsocketHandler.Instance.send(data.encodeMessage());
+            } else {
+                WebsocketHandler.Instance.send(posdata.encodeMessage());
             }
-        }
-        //code for sending data about the players position to the server
-        bool positionChange = false;
-        if ((oldPos - transform.position).magnitude >= 0.1) {
-            positionChange = true;
-            oldPos = transform.position;
-        }
-        if (positionChange) {
-            MessageData data = new MessageData();
-            data.MessageType = "Modify";
-            data.ObjFindName = transform.name;
-            data.Pos = transform.position;
-            data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
-            WebsocketHandler.Instance.send(data.encodeMessage());
-        }
+        } else if (rotationChange) { WebsocketHandler.Instance.send(rotdata.encodeMessage()); }
+
         if (Input.GetKeyDown(KeyCode.Escape)) {
             Statics.Instance.isPaused = !value;
             value = !value;
@@ -106,6 +126,7 @@ public class PlayerController : MonoBehaviour {
                 pauseOverlay.SetActive(false);
             }
         }
+        rotationChange = false;
     }
     public static void resetPosition() {
         Instance.transform.position = new Vector3(0,6,0);

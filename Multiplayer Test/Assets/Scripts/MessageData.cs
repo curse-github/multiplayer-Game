@@ -13,7 +13,8 @@ public class MessageData {
     public string[] ObjScripts = null;
     public string[] ModScriptVars = null;
     public string modifyId;
-
+    public MessageData[] list;
+    
     public static MessageData decodeMessage(string message) {
         return JsonUtility.FromJson<MessageData>(message);
     }

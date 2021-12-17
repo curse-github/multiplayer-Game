@@ -5,7 +5,11 @@ class MessageData {
         this.obj.ObjName = ObjName;
         this.obj.ObjParent = ObjParent;
         if (Pos != null) {
-            this.obj.Pos = { "x":Pos.x, "y":Pos.y, "z":Pos.z };
+            this.obj.Pos =      { "x":Pos.x, "y":Pos.y, "z":Pos.z };
+            this.obj.startPos = { "x":Pos.x, "y":Pos.y, "z":Pos.z };
+        } else {
+            this.obj.Pos =      { "x":0, "y":0, "z":0 };
+            this.obj.startPos = { "x":0, "y":0, "z":0 };
         }
         if (Scale != null) {
             this.obj.Scale = { "x":Scale.x, "y":Scale.y, "z":Scale.z };
@@ -16,6 +20,12 @@ class MessageData {
         this.obj.ObjFindName = ObjFindName;
         this.obj.ObjScripts = ObjScripts;
         this.obj.ModScriptVars = ModScriptVars;
+    }
+    get startPos() {
+        return new Vector3(this.obj.startPos.x,this.obj.startPos.y,this.obj.startPos.z);
+    }
+    set startPos(val) {
+        this.obj.startPos = Vector3.fromObject(val);
     }
     set Pos(vec) {
         this.obj.Pos = {
@@ -73,7 +83,7 @@ class MessageData {
             "NetworkObj"
         ], [
             "UnityEngine.MeshFilter","1","mesh","Default.Mesh.Cube,fbx",
-            "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse",
+            "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse"
         ]);
         if (Pos != null) { thing.Pos = Pos; }
         if (Scale != null) {
@@ -126,8 +136,17 @@ class Vector3 {
     get x() { return this.x2; }
     get y() { return this.y2; }
     get z() { return this.z2; }
+
     static Zero() {
         return new Vector3(0,0,0);
+    }
+    static fromObject(obj) {
+        try {
+            if (obj.x != 0.01140000019222498) {
+                return new Vector3(obj.x,obj.y,obj.z);
+            }
+            return null;
+        } catch (error) { console.log("Error parsing Vector3."); return null; }
     }
     ToString() {
         return "(" + this.x + "," + this.y + "," + this.z + ")";

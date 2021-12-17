@@ -40,8 +40,7 @@ var Pinging = false;
 var wsS = [];
 var playerAlive = [];
 
-var networkObjects = [];
-var networkObjectNames = [];
+var ObjectIndex = 0;
 
 const socketport = "53586";
 const wss = new WebSocket.Server({ port: socketport })
@@ -56,7 +55,6 @@ wss.on('connection', websocket => {
     for (var i = 0; i < scenes[scene].statics.length; i++) { scenes[scene].statics[i].Send(websocket); }
     for (var i = 0; i < scenes[scene].dynamics.length; i++) {
         if (scenes[scene].dynamics[i] != null) {
-            //console.log(scenes[scene].dynamics[i].obj.ObjName);
             scenes[scene].dynamics[i].Send(websocket);
         }
     }
@@ -102,6 +100,7 @@ wss.on('connection', websocket => {
         "PlayerController", "4", "moveSpeed", "10", "sensitivityX", "7.5", "sensitivityY", "5", "jumpForce", "5", 
         "UnityEngine.CapsuleCollider", "2", "height", "4", "radius", "1"
     ]);
+    Player.startPos = startingPos;
     Player.Send(websocket);
     
     Modify("Main Camera", null, "Player" + playerid, new lib.Vector3(0, 1, 0), null, null, null, [
@@ -127,15 +126,9 @@ wss.on('connection', websocket => {
 				for (var index = 0; index < wsS.length; index++) {
                     if (wsS[index] == null) { continue; }
 					if (playerAlive[index] == false) {
-						wsS[index] = null;
 						console.log("player" + (index + 1) + " disconnected.")
                         //send disconnection to other players
                         if (scenes[0].dynamicNames["Player" + index] != null) {
-                            for (const [key, value] of Object.entries(scenes[0].dynamicNames)) {
-                                console.log(`${key}: ${value}`);
-                            }
-                            console.log("\n");
-
                             scenes[0].dynamics[scenes[0].dynamicNames["Player" + index]] = null;
                             scenes[0].dynamicNames["Player" + index] = null;
                             
@@ -145,61 +138,50 @@ wss.on('connection', websocket => {
                             scenes[0].dynamics[scenes[0].dynamicNames["Player" + index + "/" + "Main Camera/Bbl"]] = null;
                             scenes[0].dynamicNames["Player" + index + "/" + "Main Camera/Bbl"] = null;
                         }
+                        for(var i = 0; i < wsS.length; i++) {
+                            if (wsS[i] == null || playerAlive[i] == false || i == index) { continue; }
+                            Destroy("Player" + index + "/" + "Main Camera/Bbl", wsS[i]);
+                            Destroy("Player" + index + "/" + "Main Camera", wsS[i]);
+                            Destroy("Player" + index, wsS[i]);
+                        }
+						wsS[index] = null;
                         startingPos.y -= 4;
-					} else { playerAlive[index] = false; }
+					}
 				}
+                for (var i = 0; i < playerAlive.length; i++) {
+                    playerAlive[i] = false;
+                }
 				Pinging = false;
 			}, 250);
 		}
 	});
 	websocket.on('message', message => {
 		var msg = JSON.parse(message);
-        if (msg.MessageType != null) {
-            if (msg.MessageType == "pong") {
-                playerAlive[Number(msg.ObjName)] = true;
-                console.log("Player" + (Number(msg.ObjName)+1) + " is alive.")
-            } else if (msg.MessageType == "Modify") {
-                var name = msg.ObjFindName;
-                var scene = 0
-                if (scenes[scene].dynamicNames[name] != null && msg.modifyId != null) {
-                    if (msg.ObjName != null && msg.ObjName != "" && msg.ObjName != name) {
-                        scenes[scene].dynamicNames[msg.ObjName] = scenes[scene].dynamicNames[name];
-                        scenes[scene].dynamicNames[name] = null;
-                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ObjName = msg.ObjName;
-                    } else { msg.ObjName = name; }
-                    if (msg.ObjParent != null && msg.ObjParent != "") {
-                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ObjParent = msg.ObjParent;
-
-                        if (msg.ObjName.include("/")) {
-                            scenes[scene].dynamicNames[msg.ObjParent + "/" + msg.ObjName.split("/")[msg.ObjName.split("/").length]] = scenes[scene].dynamicNames[msg.ObjName];
-                        } else {
-                            scenes[scene].dynamicNames[msg.ObjParent + "/" + msg.ObjName] = scenes[scene].dynamicNames[msg.ObjName];
-                        }
-                        scenes[scene].dynamicNames[msg.ObjName] = null;
-                        msg.ObjName = msg.ObjParent + "/" + msg.ObjName.split("/")[msg.ObjName.split("/").length]
-                    }
-                    if (msg.Pos != null && msg.Pos.x != 0.01140000019222498) {
-                        //console.log("Pos: \"" + JSON.stringify(msg.Pos) + "\"");
-                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Pos = new lib.Vector3(msg.Pos.x,msg.Pos.y,msg.Pos.z);
-                    }
-                    if (msg.Scale != null && msg.Scale.x != 0.01140000019222498) {
-                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Scale = new lib.Vector3(msg.Scale.x,msg.Scale.y,msg.Scale.z);
-                    }
-                    if (msg.Rot != null && msg.Rot.x != 0.01140000019222498) {
-                        //console.log("Rot: \"" + JSON.stringify(msg.Rot) + "\"");
-                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Rot = new lib.Vector3(msg.Rot.x,msg.Rot.y,msg.Rot.z);
-                    }
-                    if (msg.ObjScripts != null && msg.ObjScripts.length > 0) {
-                        for(var i = 0; i < msg.ObjScripts.length; i++) {
-                            scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].ObjScripts.push(msg.ObjScripts[i]);
-                        }
-                    }
-                    //console.log(message + "\n");
-                    for(var i = 0; i < wsS.length; i++) {
-                        if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
-                        wsS[i].send(message);
+        if (msg.list == null) {
+            if (receiveMes(msg)) {
+                if (msg.modifyId == "") { msg.modifyId = -1; }
+                for(var i = 0; i < wsS.length; i++) {
+                    if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
+                    wsS[i].send(message);
+                }
+            }
+        } else {
+            var doSend = true;
+            for(var i = 0; i < msg.list.length; i++) {
+                if (!receiveMes(msg.list[i])) {
+                    doSend = false;
+                }
+            }
+            if (doSend) {
+                if (msg.modifyId == "") { msg.modifyId = -1; }
+                for(var i = 0; i < wsS.length; i++) {
+                    if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
+                    for (var j = 0; j < msg.list.length; j++) {
+                        wsS[i].send(JSON.stringify(msg.list[j]));
                     }
                 }
+            } else {
+                console.log("Restart server NOW!");
             }
         }
 	});
@@ -217,4 +199,88 @@ function Modify(ObjFindName, ObjName, ObjParent, Pos, Scale, Rot, ObjScripts, Mo
 function Destroy(ObjFindName, ws) {
     var msg = new lib.MessageData("Destroy", null, null, null, null, null, ObjFindName);
     msg.Send(ws);
+}
+function receiveMes(msg) {
+    if (msg.MessageType != null) {
+        if (msg.MessageType == "pong") {
+            playerAlive[Number(msg.ObjName)] = true;
+            console.log("Player" + (Number(msg.ObjName)+1) + " is alive.")
+        } else if (msg.MessageType == "Modify") {
+            var name = msg.ObjFindName;
+            var scene = 0
+            if (scenes[scene].dynamicNames[name] != null) {
+                if (msg.ObjName != null && msg.ObjName != "" && msg.ObjName != name) {
+                    scenes[scene].dynamicNames[msg.ObjName] = scenes[scene].dynamicNames[name];
+                    scenes[scene].dynamicNames[name] = null;
+                    scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ObjName = msg.ObjName;
+                } else { msg.ObjName = name; }
+                if (msg.ObjParent != null && msg.ObjParent != "") {
+                    scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ObjParent = msg.ObjParent;
+
+                    if (msg.ObjName.include("/")) {
+                        scenes[scene].dynamicNames[msg.ObjParent + "/" + msg.ObjName.split("/")[msg.ObjName.split("/").length]] = scenes[scene].dynamicNames[msg.ObjName];
+                    } else {
+                        scenes[scene].dynamicNames[msg.ObjParent + "/" + msg.ObjName] = scenes[scene].dynamicNames[msg.ObjName];
+                    }
+                    scenes[scene].dynamicNames[msg.ObjName] = null;
+                    msg.ObjName = msg.ObjParent + "/" + msg.ObjName.split("/")[msg.ObjName.split("/").length]
+                }
+                if (msg.Pos != null && msg.Pos.x != 0.01140000019222498) {
+                    if (msg.Pos.y < -50) {
+                        if (msg.ObjName.includes("Object")) {
+                            //delete
+                            console.log("object \"" + msg.ObjName + "\" deleted");
+                            scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]] = null;
+                            scenes[scene].dynamicNames[msg.ObjName] = null;
+                            for(var i = 0; i < wsS.length; i++) {
+                                if (wsS[i] == null) { continue; }
+                                Destroy(msg.ObjFindName, wsS[i]);
+                            }
+                            return;
+                        }
+                        else {
+                            //reset pos
+                            for(var i = 0; i < wsS.length; i++) {
+                                if (wsS[i] == null) { continue; }
+                                Modify(msg.ObjName, null, null, scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].startPos, null, new lib.Vector3(0,0,0), null, [
+                                    "UnityEngine.Rigidbody","1","velocity","(0,0,0)"
+                                ], wsS[i]);
+                                scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Pos = scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].startPos;
+                            }
+                        }
+                    } else {
+                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Pos = new lib.Vector3(msg.Pos.x,msg.Pos.y,msg.Pos.z);
+                    }
+                }
+                if (msg.Scale != null && msg.Scale.x != 0.01140000019222498) {
+                    scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Scale = new lib.Vector3(msg.Scale.x,msg.Scale.y,msg.Scale.z);
+                }
+                if (msg.Rot != null && msg.Rot.x != 0.01140000019222498) {
+                    scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Rot = new lib.Vector3(msg.Rot.x,msg.Rot.y,msg.Rot.z);
+                }
+                if (msg.ObjScripts != null && msg.ObjScripts.length > 0) {
+                    for(var i = 0; i < msg.ObjScripts.length; i++) {
+                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].ObjScripts.push(msg.ObjScripts[i]);
+                    }
+                }
+                return true;
+            }
+        } else if (msg.MessageType == "Create") {
+            var data = new lib.MessageData(msg.MessageType,msg.ObjName,msg.ObjParent,lib.Vector3.fromObject(msg.Pos),lib.Vector3.fromObject(msg.Scale),lib.Vector3.fromObject(msg.Rot),msg.ObjFindName,msg.ObjScripts,msg.ModScriptVars);
+            if (msg.ObjName == null || msg.ObjName == "") {
+                msg.ObjName = "Object" + ObjectIndex;
+                data.obj.ObjName = "Object" + ObjectIndex;
+                ObjectIndex++;
+            }
+            if (msg.modifyId == "") { msg.modifyId = -1; }
+            for(var i = 0; i < wsS.length; i++) {
+                if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
+                data.Send(wsS[i]);
+            }
+            scenes[0].dynamics.push(data);
+            scenes[0].dynamicNames[msg.ObjName] = scenes[0].dynamics.length-1;
+            return false;
+        }
+    }
+    return false;
 }

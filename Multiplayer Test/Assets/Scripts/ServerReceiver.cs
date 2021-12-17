@@ -131,20 +131,33 @@ public class ServerReceiver : MonoBehaviour
                         obj.transform.parent = temp.transform;
                     }
                 }
+                NetworkObj thing = obj.GetComponent<NetworkObj>();
+                if (thing != null) {
+                    thing.skip = 150;
+                }
                 //change position
                 if (decoded.Pos != null && decoded.Pos != new Vector3(0.0114f,0,0))
                 {
                     obj.transform.localPosition = decoded.Pos;
+                    if (thing != null) {
+                        thing.oldPos = decoded.Pos;
+                    }
                 }
                 //change scale
                 if (decoded.Scale != null && decoded.Scale != new Vector3(0.0114f,0,0))
                 {
                     obj.transform.localScale = decoded.Scale;
-                } else {}
+                    if (thing != null) {
+                        thing.oldSca = decoded.Scale;
+                    }
+                }
                 //change rotation
                 if (decoded.Rot != null && decoded.Rot != new Vector3(0.0114f,0,0))
                 {
                     obj.transform.localEulerAngles = decoded.Rot;
+                    if (thing != null) {
+                        thing.oldRot = decoded.Rot;
+                    }
                 }
                 //add scripts
                 if (decoded.ObjScripts != null && decoded.ObjScripts.Length > 0)
