@@ -83,10 +83,11 @@ public class WebsocketHandler : MonoBehaviour
             ws.Send(message);
         }
     }
-    private void FixedUpdate() {
+    private void Update() {
         if (ws.IsAlive == true && toSend.Count > 0) {
+            //lastTime += Time.fixedUnscaledDeltaTime;
             lastTime += Time.unscaledDeltaTime;
-            if (lastTime >= 100/1000) {
+            if (lastTime >= 250/1000) {
                 MessageData data = new MessageData();
                 data.list = new MessageData[toSend.Count];
                 for(int i = 0; i < toSend.Count; i++) {

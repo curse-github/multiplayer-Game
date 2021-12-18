@@ -140,12 +140,6 @@ wss.on('connection', websocket => {
                         deleteObject(0,"Player" + index);
                         deleteObject(0,"Player" + index + "/" + "Main Camera");
                         deleteObject(0,"Player" + index + "/" + "Main Camera/Bbl");
-                        scenes[0].dynamics[scenes[0].dynamicNames["Player" + index]] = null;
-                        scenes[0].dynamicNames["Player" + index] = null;
-                        scenes[0].dynamics[scenes[0].dynamicNames["Player" + index + "/" + "Main Camera"]] = null;
-                        scenes[0].dynamicNames["Player" + index + "/" + "Main Camera"] = null;
-                        scenes[0].dynamics[scenes[0].dynamicNames["Player" + index + "/" + "Main Camera/Bbl"]] = null;
-                        scenes[0].dynamicNames["Player" + index + "/" + "Main Camera/Bbl"] = null;
 
                         //send disconnection to other players
                         for(var i = 0; i < wsS.length; i++) {
@@ -409,14 +403,13 @@ String.prototype.replaceall = function replaceall(two,three) {
 function deleteObject(scene, name) {
     for(var i = 0; i < scenes[scene].dynamics.length; i++) {
         if (scenes[scene].dynamics[i] == null) { continue; }
-        var split = name.split("/");
-        if (scenes[scene].dynamics[i].obj.ObjName == name || scenes[scene].dynamics[i].obj.ObjName == split[split.length-1]) {
+        if (scenes[scene].dynamics[i].obj.ObjName == name) {
             //console.log("removing " + scenes[scene].dynamics[i].obj.ObjName + " from dynamics.");
             scenes[scene].dynamics[i] = null;
         }
-        if (scenes[scene].dynamicNames[name] != null) {
-            scenes[scene].dynamicNames[name] = null
-            //console.log("removing " + name + " from dynamicNames.");
-        }
+    }
+    if (scenes[scene].dynamicNames[name] != null) {
+        scenes[scene].dynamicNames[name] = null
+        //console.log("removing " + name + " from dynamicNames.");
     }
 }
