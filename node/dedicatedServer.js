@@ -242,7 +242,7 @@ function receiveMes(msg) {
             }
             //console.log((closestInd+1) + " is closer.");
             if (closestInd < 0 || closestInd != msg.modifyId) { return false; console.log("Player" + (Number(msg.modifyId)+1) + " tried to move object " + scenes[scene].dynamics[scenes[scene].dynamicNames[name]].obj.ObjName + " but player " + (closestInd+1) + " was closer.\n\n"); return false; }
-            console.log("Player" + msg.modifyId + " moved " + msg.ObjFindName);
+            //console.log("Player" + (Number(msg.modifyId)+1) + " moved " + msg.ObjFindName);
             if (scenes[scene].dynamicNames[name] != null) {
                 if (msg.ObjName != null && msg.ObjName != "" && msg.ObjName != name) {
                     scenes[scene].dynamicNames[msg.ObjName] = scenes[scene].dynamicNames[name];
@@ -295,7 +295,50 @@ function receiveMes(msg) {
                 }
                 if (msg.ObjScripts != null && msg.ObjScripts.length > 0) {
                     for(var i = 0; i < msg.ObjScripts.length; i++) {
-                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].ObjScripts.push(msg.ObjScripts[i]);
+                        if (!scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].ObjScripts.includes(msg.ObjScripts[i])) {
+                            scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].ObjScripts.push(msg.ObjScripts[i]);
+                        }
+                    }
+                }
+                if (msg.ModScriptVars != null && msg.ModScriptVars.length > 0) {
+                    var Velocity = lib.Vector3.Zero();
+                    var AngularVelocity = lib.Vector3.Zero();
+                    if (msg.ModScriptVars.length > 3 && msg.ModScriptVars[0] == "UnityEngine.Rigidbody" && scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ObjScripts.includes("UnityEngine.Rigidbody")) {
+                        if (msg.ModScriptVars[1] == "2") {
+                            var split1 = msg.ModScriptVars[3].split("(")[1].split(")")[0].replaceall(" ","").split(",");
+                            var split2 = msg.ModScriptVars[5].split("(")[1].split(")")[0].replaceall(" ","").split(",");
+                            Velocity = new lib.Vector3(split1[0],split1[1],split1[2]);
+                            AngularVelocity = new lib.Vector3(split2[0],split2[1],split2[2]);
+
+                        } else if (msg.ModScriptVars[1] == "1") {
+                            if (msg.ModScriptVars[2] == "velocity") {
+                                var split1 = msg.ModScriptVars[3].split("(")[1].split(")")[0].replaceall(" ","").split(",");
+                                Velocity = new lib.Vector3(split1[0],split1[1],split1[2]);
+                            } else if (msg.ModScriptVars[2] == "angularVelocity") {
+                                var split1 = msg.ModScriptVars[3].split("(")[1].split(")")[0].replaceall(" ","").split(",");
+                                AngularVelocity = new lib.Vector3(split1[0],split1[1],split1[2]);
+                            }
+                        }
+                        var list = scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ModScriptVars
+                        var newList = [];
+                        if (list[list.length-2] != AngularVelocity) {
+                            for (var i = 0; i < list.length ; i++) {
+                                if (list[i] != "UntiyEngine.RigidBody") {
+                                    newList.push(list[i]);
+                                } else { i+=1+(Number(list[i+1])*2); }
+                            }
+                        } else {
+                            for (var i = 0; i < list.length-6;i++) {
+                                newList.push(list[i]);
+                            }
+                        }
+                        newList.push("UnityEngine.Rigidbody");
+                        newList.push("2");
+                        newList.push("velocity");
+                        newList.push("(" + Velocity.x + "," + Velocity.y + "," + Velocity.z + ")");
+                        newList.push("angularVelocity");
+                        newList.push("(" + AngularVelocity.x + "," + AngularVelocity.y + "," + AngularVelocity.z + ")");
+                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ModScriptVars = newList;
                     }
                 }
                 return true;
@@ -318,4 +361,13 @@ function receiveMes(msg) {
         }
     }
     return false;
+}
+String.prototype.replaceall = function replaceall(two,three) {
+    var temp = this;
+    if (!three.includes(two)) {
+        while(temp.includes(two)) {
+            temp = temp.replace(two,three);
+        }
+    }
+    return temp;
 }

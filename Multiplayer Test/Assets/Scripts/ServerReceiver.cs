@@ -18,7 +18,7 @@ public class ServerReceiver : MonoBehaviour
         } else {
             _instance = this;
         }
-        
+        Application.runInBackground = true;
     }
 
     public List<string> toProcess = new List<string>();

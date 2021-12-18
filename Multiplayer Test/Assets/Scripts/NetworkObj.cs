@@ -12,6 +12,7 @@ public class NetworkObj : MonoBehaviour
     bool positionChange = false;
     bool rotationChange = false;
     bool scaleChange = false;
+    Rigidbody rigid;
     void Awake()
     {
         oldPos = transform.position;
@@ -21,6 +22,10 @@ public class NetworkObj : MonoBehaviour
         if (name == "") {
             name = transform.name;
         }
+    }
+    private void Start()
+    {
+        rigid = gameObject.GetComponent<Rigidbody>();
     }
     void Update()
     {
@@ -40,13 +45,22 @@ public class NetworkObj : MonoBehaviour
             MessageData data = new MessageData();
             data.MessageType = "Modify";
             data.ObjFindName = transform.name;
-            int len = 4 + ((rotationChange && positionChange) ? 2 : 0);
+            List<string> ModScriptVars = new List<string>();
+            ModScriptVars.Add("UnityEngine.Rigidbody");
+            ModScriptVars.Add((1+((rotationChange && positionChange) ? 1 : 0)).ToString());
             if (positionChange) {
                 data.Pos = transform.position;
+                ModScriptVars.Add("velocity");
+                Vector3 vel = rigid.velocity;
+                ModScriptVars.Add("(" + vel.x + "," + vel.y + "," + vel.z + ")");
             }
             if (rotationChange) {
                 data.Rot = transform.localEulerAngles;
+                ModScriptVars.Add("angularVelocity");
+                Vector3 vel = rigid.angularVelocity;
+                ModScriptVars.Add("(" + vel.x + "," + vel.y + "," + vel.z + ")");
             }
+            data.ModScriptVars = ModScriptVars.ToArray();
             if (scaleChange) {
                 data.Scale = transform.localScale;
             }

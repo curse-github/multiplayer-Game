@@ -31,7 +31,7 @@ public class PlayerController : MonoBehaviour {
         oldPos = transform.position;
         pauseOverlay = GameObject.Find("Canvas").transform.Find("PauseOverlay").gameObject;
     }
-    private void Update() {
+    private void FixedUpdate() {
         int layerMask = 1 << 8;
         layerMask = ~layerMask;
         RaycastHit hit;
@@ -74,11 +74,13 @@ public class PlayerController : MonoBehaviour {
                     "UnityEngine.Rigidbody",
                     "NetworkObj"
                 };
+                var forwardVec = Camera.main.transform.forward*3;
                 data.ModScriptVars = new string[] {
                     "UnityEngine.MeshFilter","1","mesh","Default.Mesh.Cube,fbx",
-                    "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse"
+                    "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse",
+                    "UnityEngine.Rigidbody","1","velocity","(" + forwardVec.x + "," + forwardVec.y + "," + forwardVec.z + ")"
                 };
-                data.Pos = transform.position + Camera.main.transform.forward*3;
+                data.Pos = transform.position + forwardVec;
                 data.Scale = new Vector3(2,2,2);
                 WebsocketHandler.Instance.send(data);
             }
@@ -102,6 +104,12 @@ public class PlayerController : MonoBehaviour {
             posdata.ObjFindName = transform.name;
             posdata.Pos = transform.position;
             posdata.modifyId = transform.name.Split("Player")[1];
+            Vector3 vel = rigid.velocity;
+            /*
+            posdata.ModScriptVars = new string[]{
+                "UnityEngine.Rigidbody","1","velocity","(" + vel.x + "," + vel.y + "," + vel.z + ")"
+            };
+            */
             WebsocketHandler.Instance.send(posdata);
         }
 
