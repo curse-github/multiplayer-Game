@@ -209,7 +209,7 @@ public class ServerReceiver : MonoBehaviour
                 GameObject obj = GameObject.Find(decoded.ObjFindName);
                 GameObject.Destroy(obj);
             } else if (decoded.MessageType == "ping") {
-                WebsocketHandler.Instance.send("{\"MessageType\":\"pong\",\"ObjName\":\"" + decoded.ObjName + "\"}");
+                WebsocketHandler.Instance.sendnow("{\"MessageType\":\"pong\",\"ObjName\":\"" + decoded.ObjName + "\"}");
             }
             isProcessing = false;
         } catch (Exception e) {
@@ -306,8 +306,5 @@ public class ServerReceiver : MonoBehaviour
             print("Unsupported type: " + propType.ToString());
             return null;
         }
-    }
-    public void resetPosition() {
-        PlayerController.resetPosition();
     }
 }

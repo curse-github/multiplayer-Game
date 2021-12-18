@@ -159,34 +159,37 @@ wss.on('connection', websocket => {
 		}
 	});
 	websocket.on('message', message => {
-		var msg = JSON.parse(message);
-        if (msg.list == null) {
-            if (receiveMes(msg)) {
-                if (msg.modifyId == "") { msg.modifyId = -1; }
-                for(var i = 0; i < wsS.length; i++) {
-                    if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
-                    wsS[i].send(message);
-                }
-            }
-        } else {
-            var doSend = true;
-            for(var i = 0; i < msg.list.length; i++) {
-                if (!receiveMes(msg.list[i])) {
-                    doSend = false;
-                }
-            }
-            if (doSend) {
-                if (msg.modifyId == "") { msg.modifyId = -1; }
-                for(var i = 0; i < wsS.length; i++) {
-                    if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
-                    for (var j = 0; j < msg.list.length; j++) {
-                        wsS[i].send(JSON.stringify(msg.list[j]));
+        try {
+            var msg = JSON.parse(message);
+            if (msg.list == null || msg.list.length <= 0) {
+                if (receiveMes(msg)) {
+                    if (msg.modifyId == "") { msg.modifyId = -1; }
+                    for(var i = 0; i < wsS.length; i++) {
+                        if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
+                        if (msg.ObjName.includes("Cube") || msg.ObjName.includes("Object")) {
+                            console.log("Player" + (Number(msg.modifyId)+1) + " sent " + msg.ObjFindName + " to " + "Player" + (i+1));
+                        }
+                        wsS[i].send(message);
                     }
                 }
             } else {
-                console.log("Restart server NOW!");
+                var newLst = []
+                for(var i = 0; i < msg.list.length; i++) {
+                    if (receiveMes(msg.list[i])) {
+                        newLst.push(msg.list[i]);
+                    }
+                }
+                if (newLst.length > 0) {
+                    if (msg.modifyId == "") { msg.modifyId = -1; }
+                    for(var i = 0; i < wsS.length; i++) {
+                        if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
+                        for (var j = 0; j < newLst.length; j++) {
+                            wsS[i].send(JSON.stringify(newLst[j]));
+                        }
+                    }
+                }
             }
-        }
+        } catch (error) { console.log(error); }
 	});
 });
 console.log("server open on localhost:53586");
@@ -212,11 +215,10 @@ function receiveMes(msg) {
             var name = msg.ObjFindName;
             var scene = 0
 
-            //console.log(msg.modifyId + ": " + msg.ObjFindName);
             var closestDis = 99999999999999999;
             var closestInd = -2;
             for (var i = 0; i < wsS.length; i++) {
-                if (wsS[i] == null || scenes[scene].dynamicNames["Player" + msg.modifyId] == null) { console.log(i + " was null."); continue; }
+                if (wsS[i] == null || scenes[scene].dynamicNames["Player" + msg.modifyId] == null) { continue; }
                 var pos = scenes[scene].dynamics[scenes[scene].dynamicNames["Player" + i]].obj.Pos;
                 var lst = name.split("/");
                 var pos2 = lib.Vector3.Zero();
@@ -233,14 +235,14 @@ function receiveMes(msg) {
                     }
                 }
                 var dis = lib.distance(pos,pos2);
-                console.log((i+1) + ".dis = " + dis + ".");
-                if (dis < closestDis) {
+                //console.log((i+1) + ".dis = " + dis + ".");
+                if (dis < closestDis || (dis == closestDis && i == msg.modifyId)) {
                     closestDis = dis; closestInd = i;
                 }
             }
-            console.log((closestInd+1) + " is closer.");
-            if (closestInd < 0 || closestInd != msg.modifyId) { console.log("Player" + (Number(msg.modifyId)+1) + " tried to move object " + scenes[scene].dynamics[scenes[scene].dynamicNames[name]].obj.ObjName + " but player " + (closestInd+1) + " was closer.\n\n"); return false; }
-            console.log("\n")
+            //console.log((closestInd+1) + " is closer.");
+            if (closestInd < 0 || closestInd != msg.modifyId) { return false; console.log("Player" + (Number(msg.modifyId)+1) + " tried to move object " + scenes[scene].dynamics[scenes[scene].dynamicNames[name]].obj.ObjName + " but player " + (closestInd+1) + " was closer.\n\n"); return false; }
+            console.log("Player" + msg.modifyId + " moved " + msg.ObjFindName);
             if (scenes[scene].dynamicNames[name] != null) {
                 if (msg.ObjName != null && msg.ObjName != "" && msg.ObjName != name) {
                     scenes[scene].dynamicNames[msg.ObjName] = scenes[scene].dynamicNames[name];
@@ -269,7 +271,7 @@ function receiveMes(msg) {
                                 if (wsS[i] == null) { continue; }
                                 Destroy(msg.ObjFindName, wsS[i]);
                             }
-                            return;
+                            return false;
                         }
                         else {
                             //reset pos

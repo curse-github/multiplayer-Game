@@ -23,6 +23,8 @@ public class WebsocketHandler : MonoBehaviour
     }
     WebSocket ws;
     private IEnumerator checkConnectionAlive;
+    private float lastTime = 0;
+    private List<MessageData> toSend = new List<MessageData>();
     void Start()
     {
         checkConnectionAlive = CheckConnectionAlive();
@@ -60,7 +62,6 @@ public class WebsocketHandler : MonoBehaviour
         };
         ws.OnClose += (sender, e) => {
             Debug.Log("WebSocket Close" + e.Reason + " --- " + e.Code);
-            
         };
         ConnectF();
     }
@@ -72,9 +73,31 @@ public class WebsocketHandler : MonoBehaviour
         ws.Close();
         ws = null;
     }
-    public void send(string message) {
+    public void send(MessageData message) {
+        if (ws.IsAlive == true) {
+            toSend.Add(message);
+        }
+    }
+    public void sendnow(string message) {
         if (ws.IsAlive == true) {
             ws.Send(message);
+        }
+    }
+    private void Update() {
+        if (ws.IsAlive == true && toSend.Count > 0) {
+            lastTime += Time.unscaledDeltaTime;
+            if (lastTime >= 100/1000) {
+                MessageData data = new MessageData();
+                data.list = new MessageData[toSend.Count];
+                for(int i = 0; i < toSend.Count; i++) {
+                    data.list[i] = toSend[i];
+                }
+                data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
+                toSend = new List<MessageData>();
+                string encode = data.encodeMessage();
+                sendnow(encode);
+                lastTime = 0;
+            }
         }
     }
 }

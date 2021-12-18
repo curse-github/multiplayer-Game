@@ -14,11 +14,23 @@ public class MessageData {
     public string[] ModScriptVars = null;
     public string modifyId;
     public MessageData[] list;
+    public string DummyList = "DummyListValue";
     
     public static MessageData decodeMessage(string message) {
         return JsonUtility.FromJson<MessageData>(message);
     }
     public string encodeMessage() {
-        return JsonUtility.ToJson(this);
+        string thing = JsonUtility.ToJson(this);
+        thing = thing.Replace("\"DummyList\":\"DummyListValue\"","\"list\":[]");
+        if (list != null && list.Length > 0) {
+            string str = "\"list\":[";
+            for (int i = 0; i < list.Length; i++) {
+                string encode = list[i].encodeMessage();
+                str += encode + (i != list.Length-1 ? "," : "");
+            }
+            str += "]";
+            thing = thing.Replace("\"list\":[]",str);
+        }
+        return thing;
     }
 }
