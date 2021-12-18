@@ -83,10 +83,10 @@ public class WebsocketHandler : MonoBehaviour
             ws.Send(message);
         }
     }
-    private void Update() {
+    private void FixedUpdate() {
         if (ws.IsAlive == true && toSend.Count > 0) {
             lastTime += Time.unscaledDeltaTime;
-            if (lastTime >= 250/1000) {
+            if (lastTime >= 100/1000) {
                 MessageData data = new MessageData();
                 data.list = new MessageData[toSend.Count];
                 for(int i = 0; i < toSend.Count; i++) {
@@ -95,9 +95,10 @@ public class WebsocketHandler : MonoBehaviour
                 data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
                 toSend = new List<MessageData>();
                 string encode = data.encodeMessage();
+                //print(encode);
                 sendnow(encode);
                 lastTime = 0;
-            }
-        }
+            } else { return; }
+        } else { return; }
     }
 }

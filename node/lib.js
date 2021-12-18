@@ -146,7 +146,7 @@ class Vector3 {
                 return new Vector3(obj.x,obj.y,obj.z);
             }
             return null;
-        } catch (error) { console.log("Error parsing Vector3."); return null; }
+        } catch (error) { console.log("Error parsing Vector3."); console.log(JSON.stringify(obj)); return null; }
     }
     ToString() {
         return "(" + this.x + "," + this.y + "," + this.z + ")";

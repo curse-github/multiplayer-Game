@@ -53,12 +53,15 @@ wss.on('connection', websocket => {
     startingPos.y += 4;
 
     var scene = 0;
-    for (var i = 0; i < scenes[scene].statics.length; i++) { scenes[scene].statics[i].Send(websocket); }
+    //for (var i = 0; i < scenes[scene].statics.length; i++) { scenes[scene].statics[i].Send(websocket); }
+    var SendList = {"list":[]};
+    for (var i = 0; i < scenes[scene].statics.length; i++) { SendList.list.push(scenes[scene].statics[i]); }
     for (var i = 0; i < scenes[scene].dynamics.length; i++) {
         if (scenes[scene].dynamics[i] != null) {
-            scenes[scene].dynamics[i].Send(websocket);
+            SendList.list.push(scenes[scene].dynamics[i]);
         }
     }
+    websocket.send(JSON.stringify(SendList));
 
     //Create Player Network Object
     var PlayerDyn = lib.MessageData.Capsule("Player" + playerid, startingPos);
@@ -91,6 +94,8 @@ wss.on('connection', websocket => {
     }
 
     //instantiate same objects
+    SendList = {"list":[]};
+
     var Player = lib.MessageData.Capsule();
     Player.obj.ObjName = "Player" + playerid;
     Player.Pos = startingPos;
@@ -103,17 +108,19 @@ wss.on('connection', websocket => {
         "UnityEngine.CapsuleCollider", "2", "height", "4", "radius", "1"
     ]);
     Player.startPos = startingPos;
-    Player.Send(websocket);
+    SendList.list.push(Player);
     
-    Modify("Main Camera", null, "Player" + playerid, new lib.Vector3(0, 1, 0), null, null, null, [
+    SendList.list.push(Modify("Main Camera", null, "Player" + playerid, new lib.Vector3(0, 1, 0), null, null, null, [
         "UnityEngine.Camera", "1", "nearClipPlane", "0.3"
-    ], websocket);
-    Modify("Directional Light", null, null, null, null, null, null, ["UnityEngine.Light", "1", "intensity", "0.25"], websocket);
+    ]));
+    SendList.list.push(Modify("Directional Light", null, null, null, null, null, null, ["UnityEngine.Light", "1", "intensity", "0.25"]));
 
     var Bbl = lib.MessageData.Capsule("Bbl", new lib.Vector3(0, 0, 0.75), new lib.Vector3(0.5, 0.4, 0.5), new lib.Vector3(90, 90, 0));
     Bbl.obj.ObjParent = "Player" + playerid + "/Main Camera";
     Bbl.obj.ObjScripts.push("UnityEngine.CapsuleCollider");
-    Bbl.Send(websocket);
+    SendList.list.push(Bbl);
+
+    websocket.send(JSON.stringify(SendList));
 
 	websocket.on('close', function (reasonCode, description) {
 		if (!Pinging) {
@@ -129,17 +136,18 @@ wss.on('connection', websocket => {
                     if (wsS[index] == null) { continue; }
 					if (playerAlive[index] == false) {
 						console.log("player" + (index + 1) + " disconnected.")
+
+                        deleteObject(0,"Player" + index);
+                        deleteObject(0,"Player" + index + "/" + "Main Camera");
+                        deleteObject(0,"Player" + index + "/" + "Main Camera/Bbl");
+                        scenes[0].dynamics[scenes[0].dynamicNames["Player" + index]] = null;
+                        scenes[0].dynamicNames["Player" + index] = null;
+                        scenes[0].dynamics[scenes[0].dynamicNames["Player" + index + "/" + "Main Camera"]] = null;
+                        scenes[0].dynamicNames["Player" + index + "/" + "Main Camera"] = null;
+                        scenes[0].dynamics[scenes[0].dynamicNames["Player" + index + "/" + "Main Camera/Bbl"]] = null;
+                        scenes[0].dynamicNames["Player" + index + "/" + "Main Camera/Bbl"] = null;
+
                         //send disconnection to other players
-                        if (scenes[0].dynamicNames["Player" + index] != null) {
-                            scenes[0].dynamics[scenes[0].dynamicNames["Player" + index]] = null;
-                            scenes[0].dynamicNames["Player" + index] = null;
-                            
-                            scenes[0].dynamics[scenes[0].dynamicNames["Player" + index + "/" + "Main Camera"]] = null;
-                            scenes[0].dynamicNames["Player" + index + "/" + "Main Camera"] = null;
-                            
-                            scenes[0].dynamics[scenes[0].dynamicNames["Player" + index + "/" + "Main Camera/Bbl"]] = null;
-                            scenes[0].dynamicNames["Player" + index + "/" + "Main Camera/Bbl"] = null;
-                        }
                         for(var i = 0; i < wsS.length; i++) {
                             if (wsS[i] == null || playerAlive[i] == false || i == index) { continue; }
                             Destroy("Player" + index + "/" + "Main Camera/Bbl", wsS[i]);
@@ -198,9 +206,9 @@ function Create(ObjName, ObjParent, Pos, Scale, Rot, ObjScripts, ModScriptVars, 
     var msg = new lib.MessageData("Create", ObjName, ObjParent, Pos, Scale, Rot, null, ObjScripts, ModScriptVars);
     msg.Send(ws);
 }
-function Modify(ObjFindName, ObjName, ObjParent, Pos, Scale, Rot, ObjScripts, ModScriptVars, ws) {
+function Modify(ObjFindName, ObjName, ObjParent, Pos, Scale, Rot, ObjScripts, ModScriptVars) {
     var msg = new lib.MessageData("Modify", ObjName, ObjParent, Pos, Scale, Rot, ObjFindName, ObjScripts, ModScriptVars);
-    msg.Send(ws);
+    return msg;
 }
 function Destroy(ObjFindName, ws) {
     var msg = new lib.MessageData("Destroy", null, null, null, null, null, ObjFindName);
@@ -218,7 +226,8 @@ function receiveMes(msg) {
             var closestDis = 99999999999999999;
             var closestInd = -2;
             for (var i = 0; i < wsS.length; i++) {
-                if (wsS[i] == null || scenes[scene].dynamicNames["Player" + msg.modifyId] == null) { continue; }
+                if (wsS[i] == null || scenes[scene].dynamicNames["Player" + i] == null) { continue; }
+                //console.log(i);
                 var pos = scenes[scene].dynamics[scenes[scene].dynamicNames["Player" + i]].obj.Pos;
                 var lst = name.split("/");
                 var pos2 = lib.Vector3.Zero();
@@ -264,13 +273,12 @@ function receiveMes(msg) {
                     if (msg.Pos.y < -50) {
                         if (msg.ObjName.includes("Object")) {
                             //delete
-                            console.log("object \"" + msg.ObjName + "\" deleted");
-                            scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]] = null;
-                            scenes[scene].dynamicNames[msg.ObjName] = null;
+                            deleteObject(scene,msg.ObjName);
                             for(var i = 0; i < wsS.length; i++) {
                                 if (wsS[i] == null) { continue; }
                                 Destroy(msg.ObjFindName, wsS[i]);
                             }
+                            //console.log("object \"" + msg.ObjName + "\" deleted");
                             return false;
                         }
                         else {
@@ -279,7 +287,7 @@ function receiveMes(msg) {
                                 if (wsS[i] == null) { continue; }
                                 Modify(msg.ObjName, null, null, scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].startPos, null, new lib.Vector3(0,0,0), null, [
                                     "UnityEngine.Rigidbody","1","velocity","(0,0,0)"
-                                ], wsS[i]);
+                                ]).Send(wsS[i]);
                                 scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Pos = scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].startPos;
                             }
                         }
@@ -320,31 +328,57 @@ function receiveMes(msg) {
                             }
                         }
                         var list = scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ModScriptVars
-                        var newList = [];
-                        if (list[list.length-2] != AngularVelocity) {
-                            for (var i = 0; i < list.length ; i++) {
-                                if (list[i] != "UntiyEngine.RigidBody") {
-                                    newList.push(list[i]);
-                                } else { i+=1+(Number(list[i+1])*2); }
-                            }
-                        } else {
-                            for (var i = 0; i < list.length-6;i++) {
-                                newList.push(list[i]);
+                        var foundVel = false;
+                        var foundAng = false;
+                        for (var i = 0; i < list.length ; i++) {
+                            if (list[i] == "velocity") {
+                                foundVel = true
+                                list[i+1] = "(" + Velocity.x + "," + Velocity.y + "," + Velocity.z + ")";
+                                i++;
+                            } else if (list[i] == "angularVelocity") {
+                                foundAng = true
+                                list[i+1] = "(" + AngularVelocity.x + "," + AngularVelocity.y + "," + AngularVelocity.z + ")";
+                                i++;
                             }
                         }
-                        newList.push("UnityEngine.Rigidbody");
-                        newList.push("2");
-                        newList.push("velocity");
-                        newList.push("(" + Velocity.x + "," + Velocity.y + "," + Velocity.z + ")");
-                        newList.push("angularVelocity");
-                        newList.push("(" + AngularVelocity.x + "," + AngularVelocity.y + "," + AngularVelocity.z + ")");
-                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ModScriptVars = newList;
+                        var foundRigidbody = false
+                        if (!foundVel) {
+                            for (var i = 0; i < list.length; i++) {
+                                if (list[i] == "UnityEngine.Rigidbody") {
+                                    foundRigidbody = true;
+                                    list[i+1] = str(Number(list[i+1])+1);
+                                    list.splice(i+2, 0, "velocity");
+                                    list.splice(i+3, 0, "(" + Velocity.x + "," + Velocity.y + "," + Velocity.z + ")");
+                                    break;
+                                }
+                            }
+                        }
+                        if (!foundRigidbody) {
+                            list.push("UnityEngine.Rigidbody");
+                            list.push("2");
+                            list.push("velocity");
+                            list.push("(" + Velocity.x + "," + Velocity.y + "," + Velocity.z + ")");
+                            list.push("angularVelocity");
+                            list.push("(" + AngularVelocity.x + "," + AngularVelocity.y + "," + AngularVelocity.z + ")");
+                            foundAng = true;
+                        }
+                        if (!foundAng) {
+                            for (var i = 0; i < list.length; i++) {
+                                if (list[i] == "UnityEngine.Rigidbody") {
+                                    list[i+1] = str(Number(list[i+1])+1);
+                                    list.splice(i+2, 0, "angularVelocity");
+                                    list.splice(i+3, 0, "(" + AngularVelocity.x + "," + AngularVelocity.y + "," + AngularVelocity.z + ")");
+                                    break;
+                                }
+                            }
+                        }
+                        scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.ModScriptVars = list;
                     }
                 }
                 return true;
             }
         } else if (msg.MessageType == "Create") {
-            var data = new lib.MessageData(msg.MessageType,msg.ObjName,msg.ObjParent,lib.Vector3.fromObject(msg.Pos),lib.Vector3.fromObject(msg.Scale),lib.Vector3.fromObject(msg.Rot),msg.ObjFindName,msg.ObjScripts,msg.ModScriptVars);
+            var data = new lib.MessageData(msg.MessageType,msg.ObjName,msg.ObjParent,msg.Pos != null ? lib.Vector3.fromObject(msg.Pos) : null,msg.Scale != null ? lib.Vector3.fromObject(msg.Scale) : null,msg.Rot != null ? lib.Vector3.fromObject(msg.Rot) : null,msg.ObjFindName,msg.ObjScripts,msg.ModScriptVars);
             if (msg.ObjName == null || msg.ObjName == "") {
                 msg.ObjName = "Object" + ObjectIndex;
                 data.obj.ObjName = "Object" + ObjectIndex;
@@ -357,6 +391,7 @@ function receiveMes(msg) {
             }
             scenes[0].dynamics.push(data);
             scenes[0].dynamicNames[msg.ObjName] = scenes[0].dynamics.length-1;
+            scenes[0].dynamicCount++;
             return false;
         }
     }
@@ -370,4 +405,18 @@ String.prototype.replaceall = function replaceall(two,three) {
         }
     }
     return temp;
+}
+function deleteObject(scene, name) {
+    for(var i = 0; i < scenes[scene].dynamics.length; i++) {
+        if (scenes[scene].dynamics[i] == null) { continue; }
+        var split = name.split("/");
+        if (scenes[scene].dynamics[i].obj.ObjName == name || scenes[scene].dynamics[i].obj.ObjName == split[split.length-1]) {
+            //console.log("removing " + scenes[scene].dynamics[i].obj.ObjName + " from dynamics.");
+            scenes[scene].dynamics[i] = null;
+        }
+        if (scenes[scene].dynamicNames[name] != null) {
+            scenes[scene].dynamicNames[name] = null
+            //console.log("removing " + name + " from dynamicNames.");
+        }
+    }
 }

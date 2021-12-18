@@ -23,15 +23,19 @@ public class ServerReceiver : MonoBehaviour
 
     public List<string> toProcess = new List<string>();
     public bool isProcessing = false;
+
     public void Proccess(string message) {
         toProcess.Add(message);
-        Proccess();
+        Proccess(true);
     }
     public void Proccess() {
+        Proccess(false);
+    }
+    public void Proccess(bool overrideProccessing) {
         string notDecoded = "";
         MessageData decoded = new MessageData();
         try {
-            if (toProcess.Count <= 0 || isProcessing) { return; }
+            if (toProcess.Count <= 0 || (isProcessing && !overrideProccessing)) { return; }
             isProcessing = true;
             notDecoded = toProcess[0];
             decoded = MessageData.decodeMessage(notDecoded);
@@ -211,7 +215,7 @@ public class ServerReceiver : MonoBehaviour
             } else if (decoded.MessageType == "ping") {
                 WebsocketHandler.Instance.sendnow("{\"MessageType\":\"pong\",\"ObjName\":\"" + decoded.ObjName + "\"}");
             }
-            isProcessing = false;
+            if (!overrideProccessing) { isProcessing = false; }
         } catch (Exception e) {
             print(decoded.MessageType);
             print(decoded.ObjName);
@@ -220,11 +224,40 @@ public class ServerReceiver : MonoBehaviour
             print(notDecoded);
         }
     }
+    public void proccessList() {
+        isProcessing = true;
+        List<string> list = new List<string>();
+        string thing = toProcess[0].Remove(0, "{\"list\":[{\"obj\":".Length);
+        thing = thing.Remove(thing.Length-3, 3);
+        string dupe = thing;
+        toProcess.RemoveAt(0);
+
+        int bracketCount = 0;
+        string tempString = "";
+        for (int i = 0; i < thing.Length; i++) {
+            char c = thing[i];
+            tempString += c;
+            if (c == '{') {
+                bracketCount++;
+            } else if (c == '}') {
+                bracketCount--;
+                if (bracketCount == 0) {
+                    toProcess.Add(tempString);
+                    tempString = "";
+                    i+=",{\"obj\":".Length+1;
+                    continue;
+                }
+            }
+        }
+        isProcessing = false;
+    }
     private void Update()
     {
         if (!isProcessing && toProcess.Count > 0) {
             //print(toProcess[0]);
-            Proccess();
+            if (toProcess[0].StartsWith("{\"list\":[")) {
+                proccessList();
+            } else { Proccess(); }
         }
     }
     public static Type GetType(string TypeName)

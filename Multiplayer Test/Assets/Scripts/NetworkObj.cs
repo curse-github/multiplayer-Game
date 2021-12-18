@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class NetworkObj : MonoBehaviour
 {
-    public string name = "";
+    public new string name = "";
     public Vector3 oldPos;
     public Vector3 oldRot;
     public Vector3 oldSca;
@@ -29,6 +29,7 @@ public class NetworkObj : MonoBehaviour
     }
     void Update()
     {
+        if (Camera.main.transform.parent == null) { return; }
         if (Mathf.Abs(oldRot.x - transform.localEulerAngles.x) >= 0.1 || Mathf.Abs(oldRot.y - transform.localEulerAngles.y) >= 0.1 || Mathf.Abs(oldRot.z - transform.localEulerAngles.z) >= 0.1) {
             rotationChange = true;
             oldRot = transform.localEulerAngles;
@@ -42,6 +43,26 @@ public class NetworkObj : MonoBehaviour
             oldSca = transform.localScale;
         }
         if (rotationChange || positionChange) {
+            List<GameObject> otherPlayers = new List<GameObject>();
+            GameObject[] goS = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];
+            string mainPlayerName = Camera.main.transform.parent.name;
+            float closest = 9999999999999;
+            for (int i = 0; i < goS.Length; i++) {
+                if (goS[i].name.Contains("Player") && goS[i].name != mainPlayerName) {
+                    otherPlayers.Add(goS[i]);
+                    float dist = Vector3.Distance(goS[i].transform.position, transform.position);
+                    if (dist < closest) {
+                        dist = closest;
+                    }
+                }
+            }
+            if (Vector3.Distance(Camera.main.transform.parent.position, transform.position) - closest > 1) {
+                positionChange = false;
+                rotationChange = false;
+                scaleChange = false;
+                return;
+            }
+
             MessageData data = new MessageData();
             data.MessageType = "Modify";
             data.ObjFindName = transform.name;

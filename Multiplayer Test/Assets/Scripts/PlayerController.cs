@@ -49,16 +49,10 @@ public class PlayerController : MonoBehaviour {
 
         bool value = Statics.Instance.isPaused;
         if (!value) {
-            float moveHorizontal = Input.GetAxis ("Horizontal");
-            float moveVertical = Input.GetAxis ("Vertical");
-            if(moveHorizontal != 0) {
-                rigid.position += transform.right * moveHorizontal * moveSpeed * Time.deltaTime;
-            }
-            if(moveVertical != 0) {
-                rigid.position += transform.forward * moveVertical * moveSpeed * Time.deltaTime;
-            }
-            float lookHorizontal = Input.GetAxis ("Mouse X");
-            float lookVertical = Input.GetAxis ("Mouse Y");
+            rigid.position += Vector3.Normalize(transform.right * Input.GetAxisRaw("Horizontal") + transform.forward * Input.GetAxisRaw("Vertical")) * moveSpeed * Time.deltaTime;
+            
+            float lookHorizontal = Input.GetAxisRaw("Mouse X");
+            float lookVertical = Input.GetAxisRaw("Mouse Y");
             transform.localEulerAngles = new Vector3(0,lookHorizontal*sensitivityX + transform.localEulerAngles.y,0);
             Camera.main.transform.localEulerAngles = new Vector3(lookVertical*-sensitivityY + Camera.main.transform.localEulerAngles.x,0,0);
             if (Input.GetKeyDown(KeyCode.Space) && onGround) {
@@ -74,13 +68,13 @@ public class PlayerController : MonoBehaviour {
                     "UnityEngine.Rigidbody",
                     "NetworkObj"
                 };
-                var forwardVec = Camera.main.transform.forward*3;
+                Vector3 frwdVc = Camera.main.transform.forward*jumpForce*2;
                 data.ModScriptVars = new string[] {
                     "UnityEngine.MeshFilter","1","mesh","Default.Mesh.Cube,fbx",
                     "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse",
-                    "UnityEngine.Rigidbody","1","velocity","(" + forwardVec.x + "," + forwardVec.y + "," + forwardVec.z + ")"
+                    "UnityEngine.Rigidbody","1","velocity","(" + frwdVc.x + "," + frwdVc.y + "," + frwdVc.z + ")"
                 };
-                data.Pos = transform.position + forwardVec;
+                data.Pos = transform.position + Camera.main.transform.forward*5;
                 data.Scale = new Vector3(2,2,2);
                 WebsocketHandler.Instance.send(data);
             }
