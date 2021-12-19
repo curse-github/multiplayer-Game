@@ -49,7 +49,7 @@ public class WebsocketHandler : MonoBehaviour
         StopCoroutine(checkConnectionAlive);
     }
     void Connect() {
-        ws = new WebSocket ("ws://192.168.1.37:53586");
+        ws = new WebSocket ("ws://mc.campbellsimpson.com:53586");
         ws.OnOpen += (sender, e) => {
             Debug.Log("WebSocket Open");
         };
