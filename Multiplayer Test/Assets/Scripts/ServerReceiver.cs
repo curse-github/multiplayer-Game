@@ -41,6 +41,7 @@ public class ServerReceiver : MonoBehaviour
             decoded = MessageData.decodeMessage(notDecoded);
             toProcess.RemoveAt(0);
             if (decoded == null) { print(notDecoded); return; }
+            //print(notDecoded);
             if (decoded.MessageType == null) { return; }
             if (decoded.MessageType == "Create")
             {
@@ -85,9 +86,41 @@ public class ServerReceiver : MonoBehaviour
                     int index = 0;
                     while (decoded.ModScriptVars.Length > index && decoded.ModScriptVars[index] != null) {
                         string name = decoded.ModScriptVars[index];
+                        int numVars = int.Parse(decoded.ModScriptVars[index+1]);
+                        if (name == "UnityEngine.GameObject" || name == "GameObject") {
+                            index += 2;
+                            int l;
+                            for(l = index; l < index+numVars*2-1; l++) {
+                                if (decoded.ModScriptVars[l].EndsWith("]")) {
+                                    //it is assigning a value in a list
+                                    string[] split = decoded.ModScriptVars[l].Split("[");
+                                    PropertyInfo prop = typeof(GameObject).GetProperty(split[0]);
+                                    if (prop == null) {
+                                        FieldInfo prop2 = typeof(GameObject).GetField(split[0]);
+                                        object[] value = (object[])prop2.GetValue(obj);
+                                        value[int.Parse(split[1].Split("]")[0])] = stringToObj(decoded.ModScriptVars[l+1],prop2.FieldType);
+                                        prop2.SetValue(obj,value);
+                                    } else {
+                                        object[] value = (object[])prop.GetValue(obj);
+                                        value[int.Parse(split[1].Split("]")[0])] = stringToObj(decoded.ModScriptVars[l+1],prop.PropertyType);
+                                        prop.SetValue(obj,value);
+                                    }
+                                } else {
+                                    PropertyInfo prop = typeof(GameObject).GetProperty(decoded.ModScriptVars[l]);
+                                    if (prop == null) {
+                                        FieldInfo prop2 = typeof(GameObject).GetField(decoded.ModScriptVars[l]);
+                                        prop2.SetValue(obj,stringToObj(decoded.ModScriptVars[l+1],prop2.FieldType));
+                                    } else {
+                                        prop.SetValue(obj,stringToObj(decoded.ModScriptVars[l+1],prop.PropertyType));
+                                    }
+                                }
+                                l++;
+                            }
+                            index = l;
+                            continue;
+                        }
                         Type type = GetType(name);
                         Component comp = obj.GetComponent(type);
-                        int numVars = int.Parse(decoded.ModScriptVars[index+1]);
                         //print(decoded.ModScriptVars[index]);
                         //print(decoded.ModScriptVars[index+1]);
                         index += 2;
@@ -319,12 +352,39 @@ public class ServerReceiver : MonoBehaviour
             //Sprites-Default.mat
             //Default-Diffuse.mat
             return GetMat(one.Split("Default.Mat.")[1]);
+        } else if (one.StartsWith("Create.Mat.")) {
+            //Sprites-Default.mat
+            //Default-Diffuse.mat
+            string color = one.Split("Create.Mat.")[1];
+            Color color2 = Color.white;
+            Material material = new Material(GetMat("Default-Diffuse").shader);
+            if (color == "Color,black") {
+                color2 = Color.black;
+            } else if (color == "Color,blue") {
+                color2 = Color.blue;
+            } else if (color == "Color,cyan") {
+                color2 = Color.cyan;
+            } else if (color == "Color,gray") {
+                color2 = Color.gray;
+            } else if (color == "Color,grey") {
+                color2 = Color.grey;
+            } else if (color == "Color,green") {
+                color2 = Color.green;
+            } else if (color == "Color,magenta") {
+                color2 = Color.magenta;
+            } else if (color == "Color,red") {
+                color2 = Color.red;
+            } else if (color == "Color,white") {
+                color2 = Color.white;
+            } else if (color == "Color,yellow") {
+                color2 = Color.yellow;
+            }
+            material.SetColor("_Color", color2);
+            return material;
         } else if (propType.ToString() == "UnityEngine.Vector3") {
             string[] split2 = one.Split("(")[1].Split(")")[0].Replace(" ","").Split(",");
             return new Vector3(float.Parse(split2[0]),float.Parse(split2[1]),float.Parse(split2[2]));
         } else if (propType.ToString() == "UnityEngine.CollisionDetectionMode") {
-            //doesnt work :(
-            //print()//(typeof(Enum)).GetTypeInfo());
             return Enum.Parse(typeof(CollisionDetectionMode), one);
         } else if (propType.ToString() == "System.String") {
             return one;

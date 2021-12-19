@@ -17,9 +17,9 @@ class MessageData {
         if (Rot != null) {
             this.obj.Rot = { "x":Rot.x, "y":Rot.y, "z":Rot.z };
         }
-        this.obj.ObjFindName = ObjFindName;
-        this.obj.ObjScripts = ObjScripts;
-        this.obj.ModScriptVars = ModScriptVars;
+        if (ObjFindName != null) { this.obj.ObjFindName = ObjFindName; }
+        if (ObjScripts != null) { this.obj.ObjScripts = ObjScripts; }
+        if (ModScriptVars != null) { this.obj.ModScriptVars = ModScriptVars; }
     }
     get startPos() {
         return new Vector3(this.obj.startPos.x,this.obj.startPos.y,this.obj.startPos.z);
@@ -61,7 +61,7 @@ class MessageData {
         } catch (error) { console.log(error.data) }
     }
     static Cube(Name, Pos, Scale, Rot) {
-        var thing = new MessageData("Create",Name, null, null, null, null, null, [
+        var thing = new MessageData("Create",(Name != null ? Name : ""), null, (Pos != null ? Pos : null), null, (Rot != null ? Rot : null), null, [
             "UnityEngine.MeshFilter",
             "UnityEngine.MeshRenderer",
             "UnityEngine.BoxCollider"
@@ -69,13 +69,14 @@ class MessageData {
             "UnityEngine.MeshFilter","1","mesh","Default.Mesh.Cube,fbx",
             "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse",
         ]);
-        if (Pos != null) { thing.Pos = Pos; }
-        if (Scale != null) { thing.Scale = Scale; }
-        if (Rot != null) { thing.Rot = Rot; }
+        if (Scale != null) {
+            if (typeof(Scale) == "object") { thing.Scale = Scale; }
+            else if (typeof(Scale) == "number") { thing.Scale = new Vector3(Scale,Scale,Scale); }
+        }
         return thing;
     }
     static RigidCube(Name, Pos, Scale, Rot) {
-        var thing = new MessageData("Create",Name, null, null, null, null, null, [
+        var thing = new MessageData("Create",(Name != null ? Name : ""), null, (Pos != null ? Pos : null), null, (Rot != null ? Rot : null), null, [
             "UnityEngine.MeshFilter",
             "UnityEngine.MeshRenderer",
             "UnityEngine.BoxCollider",
@@ -85,29 +86,25 @@ class MessageData {
             "UnityEngine.MeshFilter","1","mesh","Default.Mesh.Cube,fbx",
             "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse"
         ]);
-        if (Pos != null) { thing.Pos = Pos; }
         if (Scale != null) {
             if (typeof(Scale) == "object") { thing.Scale = Scale; }
             else if (typeof(Scale) == "number") { thing.Scale = new Vector3(Scale,Scale,Scale); }
         }
-        if (Rot != null) { thing.Rot = Rot; }
         return thing;
     }
-    static Capsule(Name, Pos, Scale, Rot) {
-        var thing = new MessageData("Create",(Name != null ? Name : ""), null, null, null, null, null, [
+    static Capsule(Name, Pos, Scale, Rot, color) {
+        var thing = new MessageData("Create",(Name != null ? Name : ""), null, (Pos != null ? Pos : null), null, (Rot != null ? Rot : null), null, [
             "UnityEngine.MeshFilter",
             "UnityEngine.MeshRenderer",
             "UnityEngine.CapsuleCollider"
         ], [
             "UnityEngine.MeshFilter","1","mesh","Default.Mesh.Capsule,fbx",
-            "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse",
+            "UnityEngine.MeshRenderer","1","materials[0]",(color != null ? "Create.Mat." + color.replaceall(".",",") : "Default.Mat.Default-Diffuse")
         ]);
-        if (Pos != null) { thing.Pos = Pos; }
         if (Scale != null) {
             if (typeof(Scale) == "object") { thing.Scale = Scale; }
             else if (typeof(Scale) == "number") { thing.Scale = new Vector3(Scale,Scale,Scale); }
         }
-        if (Rot != null) { thing.Rot = Rot; }
         return thing;
     }
 }

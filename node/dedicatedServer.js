@@ -11,30 +11,23 @@ var startingPos = new lib.Vector3(0, 2, 0);
 
 var scenes = [{"statics":[],"dynamics":[],"dynamicCount":0,"dynamicNames":[]}];
 //static objects
-var floor = lib.MessageData.Cube();
-floor.obj.ObjName = "Floor";
-floor.Pos = new lib.Vector3(0, -0.125, 0);
-floor.Scale = new lib.Vector3(50, 0.25, 50);
-floor.Rot = new lib.Vector3(0, 45, 0);
+var floor = lib.MessageData.Cube("Floor", new lib.Vector3(0, -0.125, 0), new lib.Vector3(100, 0.25, 100), new lib.Vector3(0, 45, 0));
 scenes[0].statics.push(floor);
 var size = 8
 var sizem1 = size-1;
-scenes[0].statics.push(lib.MessageData.Cube("Ramp1P1", new lib.Vector3(0, sizem1/2-(Math.sqrt(2)/4), -10-sizem1/2-Math.sqrt(2)/4), new lib.Vector3(sizem1,1,Math.sqrt(sizem1*sizem1+sizem1*sizem1)), new lib.Vector3(45, 0, 0)));
-scenes[0].statics.push(lib.MessageData.Cube("Ramp1P2", new lib.Vector3(0, sizem1/2, -10-sizem1-0.5), new lib.Vector3(sizem1,sizem1,1), new lib.Vector3(0,0,0)));
+scenes[0].statics.push(lib.MessageData.Cube("Ramp1P1", new lib.Vector3(0, sizem1/2-(Math.sqrt(2)/4), -26.5-sizem1/2-Math.sqrt(2)/4), new lib.Vector3(sizem1,1,Math.sqrt(sizem1*sizem1+sizem1*sizem1)), new lib.Vector3(45, 0, 0)));
+scenes[0].statics.push(lib.MessageData.Cube("Ramp1P2", new lib.Vector3(0, sizem1/2, -26.5-sizem1-0.5), new lib.Vector3(sizem1,sizem1,1), new lib.Vector3(0,0,0)));
 //dynamic objects
-scenes[0].dynamics.push(lib.MessageData.RigidCube("Cube1", new lib.Vector3(15, 1, 15),    2, new lib.Vector3(0, 45, 0)));
-scenes[0].dynamics.push(lib.MessageData.RigidCube("Cube2", new lib.Vector3(15, 1.5, -15), 3, new lib.Vector3(0, 45, 0)));
-scenes[0].dynamics.push(lib.MessageData.RigidCube("Cube3", new lib.Vector3(-15, 1, -15),  2, new lib.Vector3(0, 45, 0)));
-scenes[0].dynamics.push(lib.MessageData.RigidCube("Cube4", new lib.Vector3(-15, 1.5, 15), 3, new lib.Vector3(0, 45, 0)));
-scenes[0].dynamics[scenes[0].dynamics.length-4].obj.ModScriptVars[7] == "Default.Mat.Sprites-Default";
-scenes[0].dynamics[scenes[0].dynamics.length-3].obj.ModScriptVars[7] == "Default.Mat.Sprites-Default";
-scenes[0].dynamics[scenes[0].dynamics.length-2].obj.ModScriptVars[7] == "Default.Mat.Sprites-Default";
-scenes[0].dynamics[scenes[0].dynamics.length-1].obj.ModScriptVars[7] == "Default.Mat.Sprites-Default";
-scenes[0].dynamicNames["Cube1"] = 0
-scenes[0].dynamicNames["Cube2"] = 1
-scenes[0].dynamicNames["Cube3"] = 2
-scenes[0].dynamicNames["Cube4"] = 3
-scenes[0].dynamicCount = 4
+var numCubes = 16;
+var radius = 25;
+for (var i = 0; i < 360; i += 360/numCubes) {
+    var id = (i/(360/numCubes));
+    var scale = (id%2 == 0 ? 2 : 3)
+    var pos = new lib.Vector3(Math.sin(i*(Math.PI/180))*radius,scale/2,Math.cos(i*(Math.PI/180))*radius);
+    scenes[0].dynamics.push(lib.MessageData.RigidCube("Cube" + (id+1), pos, scale, new lib.Vector3(0, i, 0)));
+    scenes[0].dynamicNames["Cube" + (id+1)] = id
+}
+scenes[0].dynamicCount = numCubes
 
 var Pinging = false;
 var wsS = [];
@@ -50,7 +43,6 @@ wss.on('connection', websocket => {
     for (var i = 0; i < wsS.length+1; i++) {
         if (wsS[i] == null) { wsS[i] = websocket; playerid = i; console.log("player" + (i+1) + " joined!"); break; }
     }
-    startingPos.y += 4;
 
     var scene = 0;
     //for (var i = 0; i < scenes[scene].statics.length; i++) { scenes[scene].statics[i].Send(websocket); }
@@ -64,7 +56,7 @@ wss.on('connection', websocket => {
     websocket.send(JSON.stringify(SendList));
 
     //Create Player Network Object
-    var PlayerDyn = lib.MessageData.Capsule("Player" + playerid, startingPos);
+    var PlayerDyn = lib.MessageData.Capsule("Player" + playerid, startingPos,null,null, "Color.red");
     PlayerDyn.addModVars([
         "UnityEngine.CapsuleCollider", "2", "height", "4", "radius", "1"
     ]);
@@ -79,7 +71,7 @@ wss.on('connection', websocket => {
     key += "/" + scenes[scene].dynamics[scenes[scene].dynamics.length-1].obj.ObjName;
     scenes[scene].dynamicNames[key] = scenes[scene].dynamicCount+1;
     //Set Bbl Network Object
-    var Bbl = lib.MessageData.Capsule("Bbl", new lib.Vector3(0, 0, 0.75), new lib.Vector3(0.5, 0.4, 0.5), new lib.Vector3(90, 90, 0));
+    var Bbl = lib.MessageData.Capsule("Bbl", new lib.Vector3(0, 0, 0.75), new lib.Vector3(0.5, 0.4, 0.5), new lib.Vector3(90, 90, 0),"Color.cyan");
     Bbl.obj.ObjParent = "Player" + playerid + "/Main Camera";
     scenes[scene].dynamics.push(Bbl);
     key += "/" + scenes[scene].dynamics[scenes[scene].dynamics.length-1].obj.ObjName;
@@ -92,22 +84,23 @@ wss.on('connection', websocket => {
         Camera.Send(wsS[i]);
         Bbl.Send(wsS[i]);
     }
+    //console.log(JSON.stringify(PlayerDyn.obj));
+    //console.log(JSON.stringify(Camera.obj));
+    //console.log(JSON.stringify(Bbl.obj));
 
     //instantiate same objects
     SendList = {"list":[]};
 
-    var Player = lib.MessageData.Capsule();
-    Player.obj.ObjName = "Player" + playerid;
-    Player.Pos = startingPos;
+    var Player = lib.MessageData.Capsule("Player" + playerid,startingPos,null,null,"Color.red");
     Player.obj.ObjScripts.push("UnityEngine.Rigidbody");
     Player.obj.ObjScripts.push("UnityEngine.CapsuleCollider");
     Player.obj.ObjScripts.push("PlayerController");
     Player.addModVars([
         "UnityEngine.Rigidbody", "2", "collisionDetectionMode", "ContinuousDynamic", "freezeRotation", "true", 
         "PlayerController", "4", "moveSpeed", "10", "sensitivityX", "7.5", "sensitivityY", "5", "jumpForce", "5", 
-        "UnityEngine.CapsuleCollider", "2", "height", "4", "radius", "1"
+        "UnityEngine.CapsuleCollider", "2", "height", "4", "radius", "1",
+        "UnityEngine.GameObject","1","layer","2"
     ]);
-    Player.startPos = startingPos;
     SendList.list.push(Player);
     
     SendList.list.push(Modify("Main Camera", null, "Player" + playerid, new lib.Vector3(0, 1, 0), null, null, null, [
@@ -115,12 +108,15 @@ wss.on('connection', websocket => {
     ]));
     SendList.list.push(Modify("Directional Light", null, null, null, null, null, null, ["UnityEngine.Light", "1", "intensity", "0.25"]));
 
-    var Bbl = lib.MessageData.Capsule("Bbl", new lib.Vector3(0, 0, 0.75), new lib.Vector3(0.5, 0.4, 0.5), new lib.Vector3(90, 90, 0));
+    var Bbl = lib.MessageData.Capsule("Bbl", new lib.Vector3(0, 0, 0.75), new lib.Vector3(0.5, 0.4, 0.5), new lib.Vector3(90, 90, 0),"Color.cyan");
     Bbl.obj.ObjParent = "Player" + playerid + "/Main Camera";
-    Bbl.obj.ObjScripts.push("UnityEngine.CapsuleCollider");
+    Bbl.addModVars([
+        "UnityEngine.GameObject", "1", "layer", "2"
+    ]);
     SendList.list.push(Bbl);
 
     websocket.send(JSON.stringify(SendList));
+    startingPos = new lib.Vector3(startingPos.x, startingPos.y+4, startingPos.z);
 
 	websocket.on('close', function (reasonCode, description) {
 		if (!Pinging) {
@@ -150,7 +146,7 @@ wss.on('connection', websocket => {
                         }
 						wsS[index] = null;
                         playerindexes[index] = null;
-                        startingPos.y -= 4;
+                        startingPos = new lib.Vector3(startingPos.x, startingPos.y-4, startingPos.z);
 					}
 				}
                 for (var i = 0; i < playerAlive.length; i++) {
@@ -277,13 +273,18 @@ function receiveMes(msg) {
                         }
                         else {
                             //reset pos
+                            var startPos = scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].obj.startPos;
                             for(var i = 0; i < wsS.length; i++) {
                                 if (wsS[i] == null) { continue; }
-                                Modify(msg.ObjName, null, null, scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].startPos, null, new lib.Vector3(0,0,0), null, [
+                                //console.log("Object startPos: (" + startPos.x + "," + startPos.y + "," + startPos.z + ")");
+                                var modify = Modify(msg.ObjName, null, null, startPos, null, new lib.Vector3(0,0,0), null, [
                                     "UnityEngine.Rigidbody","1","velocity","(0,0,0)"
-                                ]).Send(wsS[i]);
-                                scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Pos = scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].startPos;
+                                ])
+                                modify.Send(wsS[i]);
+                                //console.log(JSON.stringify(modify.obj));
                             }
+                            scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Pos = startPos;
+                            return false;
                         }
                     } else {
                         scenes[scene].dynamics[scenes[scene].dynamicNames[msg.ObjName]].Pos = new lib.Vector3(msg.Pos.x,msg.Pos.y,msg.Pos.z);
@@ -372,12 +373,11 @@ function receiveMes(msg) {
                 return true;
             }
         } else if (msg.MessageType == "Create") {
-            var data = new lib.MessageData(msg.MessageType,msg.ObjName,msg.ObjParent,msg.Pos != null ? lib.Vector3.fromObject(msg.Pos) : null,msg.Scale != null ? lib.Vector3.fromObject(msg.Scale) : null,msg.Rot != null ? lib.Vector3.fromObject(msg.Rot) : null,msg.ObjFindName,msg.ObjScripts,msg.ModScriptVars);
             if (msg.ObjName == null || msg.ObjName == "") {
                 msg.ObjName = "Object" + ObjectIndex;
-                data.obj.ObjName = "Object" + ObjectIndex;
                 ObjectIndex++;
             }
+            var data = new lib.MessageData("Create",msg.ObjName,msg.ObjParent,msg.Pos != null ? lib.Vector3.fromObject(msg.Pos) : null,msg.Scale != null ? lib.Vector3.fromObject(msg.Scale) : null,msg.Rot != null ? lib.Vector3.fromObject(msg.Rot) : null,msg.ObjFindName,msg.ObjScripts,msg.ModScriptVars);
             if (msg.modifyId == "") { msg.modifyId = -1; }
             for(var i = 0; i < wsS.length; i++) {
                 if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
@@ -433,4 +433,8 @@ function deleteObject(scene, name) {
             }
         }
     }
+}
+function print(string) {
+    console.log("print is not implemented... but here you go");
+    console.log("string");
 }

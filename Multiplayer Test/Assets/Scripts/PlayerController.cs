@@ -12,7 +12,8 @@ public class PlayerController : MonoBehaviour {
     public float jumpForce = 10f;
 
     public bool onGround = false;
-
+    public bool mousedown = false;
+    public Rigidbody grabbed = null;
     public Rigidbody rigid;
     private GameObject pauseOverlay;
 
@@ -32,18 +33,11 @@ public class PlayerController : MonoBehaviour {
         pauseOverlay = GameObject.Find("Canvas").transform.Find("PauseOverlay").gameObject;
     }
     private void FixedUpdate() {
-        int layerMask = 1 << 8;
+        if (transform.childCount == 0) { return; }
+        int layerMask = 1 << 2;
         layerMask = ~layerMask;
         RaycastHit hit;
-        bool[] rays = {
-            Physics.Raycast(transform.position-Vector3.up, Vector3.Normalize(new Vector3(0,-1,0)),   out hit, 1.1f, layerMask),
-            Physics.Raycast(transform.position-Vector3.up, Vector3.Normalize(new Vector3(1,-1,0)),   out hit, 1.01f, layerMask),
-            Physics.Raycast(transform.position-Vector3.up, Vector3.Normalize(new Vector3(-1,-1,0)),  out hit, 1.01f, layerMask),
-            Physics.Raycast(transform.position-Vector3.up, Vector3.Normalize(new Vector3(0,-1,1)),   out hit, 1.01f, layerMask),
-            Physics.Raycast(transform.position-Vector3.up, Vector3.Normalize(new Vector3(0,-1,-1)),  out hit, 1.01f, layerMask),
-        };
-        
-        if (rays[0]||rays[1]||rays[2]||rays[3]||rays[4]) {
+        if (Physics.SphereCast(transform.position, 2, -Vector3.up, out hit, 1.3f, layerMask, QueryTriggerInteraction.Ignore)) {
             onGround = true;
         } else { onGround = false; }
 
@@ -74,7 +68,7 @@ public class PlayerController : MonoBehaviour {
                     "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse",
                     "UnityEngine.Rigidbody","1","velocity","(" + frwdVc.x + "," + frwdVc.y + "," + frwdVc.z + ")"
                 };
-                data.Pos = transform.position + Camera.main.transform.forward*5;
+                data.Pos = transform.position + Vector3.Normalize(transform.GetChild(0).forward)*10;
                 data.Scale = new Vector3(2,2,2);
                 WebsocketHandler.Instance.send(data);
             }
@@ -90,6 +84,28 @@ public class PlayerController : MonoBehaviour {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
                 pauseOverlay.SetActive(false);
+            }
+        }
+        if (Input.GetMouseButton(0) && !mousedown) {
+            mousedown = true;
+            if (Physics.Raycast(transform.GetChild(0).position, Vector3.Normalize(transform.GetChild(0).forward), out hit, 8, layerMask)) {
+                if (hit.rigidbody != null) {
+                    grabbed = hit.rigidbody;
+                }
+            }
+        } else if (!Input.GetMouseButton(0) && mousedown) {
+            mousedown = false;
+            grabbed = null;
+        }
+        if (mousedown && grabbed != null) {
+            Vector3 pos1 = transform.GetChild(0).position + Vector3.Normalize(transform.GetChild(0).forward)*6;
+            /*
+            if (Mathf.Abs((pos1 - grabbed.transform.position).magnitude) > 2f) {
+                grabbed.position = pos1 + Vector3.Normalize(grabbed.transform.position - pos1)*2;
+            }
+            */
+            if ((pos1 - grabbed.transform.position).magnitude > 0.1f) {
+                grabbed.velocity += pos1-grabbed.transform.position;
             }
         }
     }

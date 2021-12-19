@@ -88,7 +88,6 @@ public class WebsocketHandler : MonoBehaviour
             //lastTime += Time.fixedUnscaledDeltaTime;
             lastTime += Time.unscaledDeltaTime;
             if (lastTime >= 250/1000) {
-
                 MessageData PlayerPos = PlayerController.Instance.getPos();
                 if (PlayerPos != null) { toSend.Add(PlayerPos); }
                 MessageData CameraRot = PlayerController.Instance.getRot();
