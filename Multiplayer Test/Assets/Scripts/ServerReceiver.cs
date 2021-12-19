@@ -40,6 +40,7 @@ public class ServerReceiver : MonoBehaviour
             notDecoded = toProcess[0];
             decoded = MessageData.decodeMessage(notDecoded);
             toProcess.RemoveAt(0);
+            if (decoded == null) { print(notDecoded); return; }
             if (decoded.MessageType == null) { return; }
             if (decoded.MessageType == "Create")
             {

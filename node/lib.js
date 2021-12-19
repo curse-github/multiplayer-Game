@@ -2,8 +2,8 @@ class MessageData {
     constructor(MessageType, ObjName, ObjParent, Pos, Scale, Rot, ObjFindName, ObjScripts, ModScriptVars) {
         this.obj = {};
         this.obj.MessageType = MessageType;
-        this.obj.ObjName = ObjName;
-        this.obj.ObjParent = ObjParent;
+        if (ObjName != null) { this.obj.ObjName = ObjName; }
+        if (ObjParent != null) { this.obj.ObjParent = ObjParent; }
         if (Pos != null) {
             this.obj.Pos =      { "x":Pos.x, "y":Pos.y, "z":Pos.z };
             this.obj.startPos = { "x":Pos.x, "y":Pos.y, "z":Pos.z };

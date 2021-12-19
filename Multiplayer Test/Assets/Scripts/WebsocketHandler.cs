@@ -84,20 +84,35 @@ public class WebsocketHandler : MonoBehaviour
         }
     }
     private void Update() {
-        if (ws.IsAlive == true && toSend.Count > 0) {
+        if (ws.IsAlive == true && PlayerController.Instance != null) {
             //lastTime += Time.fixedUnscaledDeltaTime;
             lastTime += Time.unscaledDeltaTime;
             if (lastTime >= 250/1000) {
-                MessageData data = new MessageData();
-                data.list = new MessageData[toSend.Count];
-                for(int i = 0; i < toSend.Count; i++) {
-                    data.list[i] = toSend[i];
+
+                MessageData PlayerPos = PlayerController.Instance.getPos();
+                if (PlayerPos != null) { toSend.Add(PlayerPos); }
+                MessageData CameraRot = PlayerController.Instance.getRot();
+                if (CameraRot != null) { toSend.Add(CameraRot); }
+
+                NetworkObj[] objs = Resources.FindObjectsOfTypeAll(typeof(NetworkObj)) as NetworkObj[];
+                for (int i = 0; i < objs.Length; i++) {
+                    MessageData change = objs[i].getChange();
+                    if (change != null) {
+                        //print(objs[i].name);
+                        //print(change.encodeMessage());
+                        toSend.Add(change);
+                    }
                 }
-                data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
-                toSend = new List<MessageData>();
-                string encode = data.encodeMessage();
-                //print(encode);
-                sendnow(encode);
+
+                MessageData data = new MessageData();
+                if (toSend.Count > 0) {
+                    data.list = toSend.ToArray();
+                    data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
+                    toSend = new List<MessageData>();
+                    string encode = data.encodeMessage();
+                    //print(encode);
+                    sendnow(encode);
+                }
                 lastTime = 0;
             } else { return; }
         } else { return; }

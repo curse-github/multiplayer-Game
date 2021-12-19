@@ -401,15 +401,36 @@ String.prototype.replaceall = function replaceall(two,three) {
     return temp;
 }
 function deleteObject(scene, name) {
-    for(var i = 0; i < scenes[scene].dynamics.length; i++) {
-        if (scenes[scene].dynamics[i] == null) { continue; }
-        if (scenes[scene].dynamics[i].obj.ObjName == name) {
-            //console.log("removing " + scenes[scene].dynamics[i].obj.ObjName + " from dynamics.");
-            scenes[scene].dynamics[i] = null;
-        }
-    }
+    var condition1 = false;
+    //console.log("removing " + name + " from dynamicNames.");
     if (scenes[scene].dynamicNames[name] != null) {
+        if (scenes[scene].dynamics[scenes[scene].dynamicNames[name]].obj.ObjName == name) {
+            //console.log("removing " + scenes[scene].dynamics[scenes[scene].dynamicNames[name]].obj.ObjName + " from dynamics.\n");
+            scenes[scene].dynamics[scenes[scene].dynamicNames[name]] = null;
+            condition1 = true;
+        }
         scenes[scene].dynamicNames[name] = null
-        //console.log("removing " + name + " from dynamicNames.");
+    }
+    if (condition1 == false) {
+        for(var i = 0; i < scenes[scene].dynamics.length; i++) {
+            if (scenes[scene].dynamics[i] == null) { continue; }
+            var condition2 = false;
+            if (scenes[scene].dynamics[i].obj.ObjParent != null) {
+                var split = name.split("/");
+                var split2 = scenes[scene].dynamics[i].obj.ObjParent.split("/");
+                split2.push(scenes[scene].dynamics[i].obj.ObjName);
+                if (split2.length == split.length) {
+                    var test = true;
+                    for (var j = 0; j < split2.length; j++) {
+                        if (split2[j] != split[j]) { test = false; break; }
+                    }
+                    condition2 = test;
+                }
+            }
+            if (scenes[scene].dynamics[i] != null && scenes[scene].dynamics[i].obj.ObjName != null && (condition2 || scenes[scene].dynamics[i].obj.ObjName == name)) {
+                //console.log("removing " + scenes[scene].dynamics[i].obj.ObjName + " from dynamics.\n");
+                scenes[scene].dynamics[i] = null;
+            }
+        }
     }
 }

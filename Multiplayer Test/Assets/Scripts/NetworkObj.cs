@@ -8,10 +8,6 @@ public class NetworkObj : MonoBehaviour
     public Vector3 oldPos;
     public Vector3 oldRot;
     public Vector3 oldSca;
-
-    bool positionChange = false;
-    bool rotationChange = false;
-    bool scaleChange = false;
     Rigidbody rigid;
     void Awake()
     {
@@ -23,13 +19,14 @@ public class NetworkObj : MonoBehaviour
             name = transform.name;
         }
     }
-    private void Start()
-    {
+    private void Start() {
         rigid = gameObject.GetComponent<Rigidbody>();
     }
-    void Update()
-    {
-        if (Camera.main.transform.parent == null) { return; }
+    public MessageData getChange() {
+        bool positionChange = false;
+        bool rotationChange = false;
+        bool scaleChange = false;
+        if (Camera.main.transform.parent == null) { return null; }
         if (Mathf.Abs(oldRot.x - transform.localEulerAngles.x) >= 0.1 || Mathf.Abs(oldRot.y - transform.localEulerAngles.y) >= 0.1 || Mathf.Abs(oldRot.z - transform.localEulerAngles.z) >= 0.1) {
             rotationChange = true;
             oldRot = transform.localEulerAngles;
@@ -60,7 +57,7 @@ public class NetworkObj : MonoBehaviour
                 positionChange = false;
                 rotationChange = false;
                 scaleChange = false;
-                return;
+                return null;
             }
 
             MessageData data = new MessageData();
@@ -86,11 +83,8 @@ public class NetworkObj : MonoBehaviour
                 data.Scale = transform.localScale;
             }
             data.modifyId = Camera.main.transform.parent.name.Split("Player")[1];
-            WebsocketHandler.Instance.send(data);
-            //print("Moved!");
+            return data;
         }
-        positionChange = false;
-        rotationChange = false;
-        scaleChange = false;
+        return null;
     }
 }

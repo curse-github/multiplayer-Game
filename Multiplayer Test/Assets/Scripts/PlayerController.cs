@@ -78,35 +78,7 @@ public class PlayerController : MonoBehaviour {
                 data.Scale = new Vector3(2,2,2);
                 WebsocketHandler.Instance.send(data);
             }
-
-            //rotation is put in here as it shouldnt change while paused anyways
-            if (transform.childCount > 0 && (Mathf.Abs(oldRot.y - Camera.main.transform.eulerAngles.y) >= 0.1 || Mathf.Abs(oldRot.x - Camera.main.transform.eulerAngles.x) >= 0.1)) {
-                oldRot = Camera.main.transform.eulerAngles;
-                MessageData rotdata = new MessageData();
-                rotdata.MessageType = "Modify";
-                rotdata.ObjFindName = transform.name + "/Main Camera";
-                rotdata.Rot = Camera.main.transform.eulerAngles;
-                rotdata.modifyId = transform.name.Split("Player")[1];
-                WebsocketHandler.Instance.send(rotdata);
-            }
         }
-        //code for sending data about the player to the server
-        if ((oldPos - transform.position).magnitude >= 0.1) {
-            oldPos = transform.position;
-            MessageData posdata = new MessageData();
-            posdata.MessageType = "Modify";
-            posdata.ObjFindName = transform.name;
-            posdata.Pos = transform.position;
-            posdata.modifyId = transform.name.Split("Player")[1];
-            Vector3 vel = rigid.velocity;
-            /*
-            posdata.ModScriptVars = new string[]{
-                "UnityEngine.Rigidbody","1","velocity","(" + vel.x + "," + vel.y + "," + vel.z + ")"
-            };
-            */
-            WebsocketHandler.Instance.send(posdata);
-        }
-
         if (Input.GetKeyDown(KeyCode.Escape)) {
             Statics.Instance.isPaused = !value;
             value = !value;
@@ -120,5 +92,35 @@ public class PlayerController : MonoBehaviour {
                 pauseOverlay.SetActive(false);
             }
         }
+    }
+    public MessageData getPos() {
+        if ((oldPos - transform.position).magnitude >= 0.1) {
+            oldPos = transform.position;
+            MessageData posdata = new MessageData();
+            posdata.MessageType = "Modify";
+            posdata.ObjFindName = transform.name;
+            posdata.Pos = transform.position;
+            posdata.modifyId = transform.name.Split("Player")[1];
+            /*
+            Vector3 vel = rigid.velocity;
+            posdata.ModScriptVars = new string[]{
+                "UnityEngine.Rigidbody","1","velocity","(" + vel.x + "," + vel.y + "," + vel.z + ")"
+            };
+            */
+            return posdata;
+        }
+        return null;
+    }
+    public MessageData getRot() {
+        if (transform.childCount > 0 && (Mathf.Abs(oldRot.y - Camera.main.transform.eulerAngles.y) >= 0.1 || Mathf.Abs(oldRot.x - Camera.main.transform.eulerAngles.x) >= 0.1)) {
+            oldRot = Camera.main.transform.eulerAngles;
+            MessageData rotdata = new MessageData();
+            rotdata.MessageType = "Modify";
+            rotdata.ObjFindName = transform.name + "/Main Camera";
+            rotdata.Rot = Camera.main.transform.eulerAngles;
+            rotdata.modifyId = transform.name.Split("Player")[1];
+            return rotdata;
+        }
+        return null;
     }
 }
