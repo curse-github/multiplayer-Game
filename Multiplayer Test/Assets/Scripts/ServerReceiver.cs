@@ -19,6 +19,8 @@ public class ServerReceiver : MonoBehaviour
             _instance = this;
         }
         Application.runInBackground = true;
+        Application.targetFrameRate = 120;
+        QualitySettings.vSyncCount = 1;
     }
 
     public List<string> toProcess = new List<string>();
@@ -182,9 +184,11 @@ public class ServerReceiver : MonoBehaviour
                 if (decoded.Scale != null && decoded.Scale != new Vector3(0.0114f,0,0))
                 {
                     obj.transform.localScale = decoded.Scale;
-                    if (thing != null) {
-                        thing.oldSca = decoded.Scale;
-                    }
+                    MessageData data2 = new MessageData();
+                    data2.MessageType = "1";
+                    data2.ObjFindName = obj.name;
+                    data2.Scale = decoded.Scale;
+                    WebsocketHandler.Instance.send(data2);
                 }
                 //change rotation
                 if (decoded.Rot != null && decoded.Rot != new Vector3(0.0114f,0,0))

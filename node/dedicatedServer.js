@@ -64,19 +64,20 @@ wss.on('connection', websocket => {
     var key = scenes[scene].dynamics[scenes[scene].dynamics.length-1].obj.ObjName;
     scenes[scene].dynamicNames[key] = scenes[scene].dynamicCount;
     playerindexes[playerid] = scenes[scene].dynamicCount;
+    scenes[scene].dynamicCount++;
 
     //Set Camera Network Object
     var Camera = new lib.MessageData("Create","Main Camera", "Player" + playerid, new lib.Vector3(0, 1, 0), null, null, null, null, null);
     scenes[scene].dynamics.push(Camera);
     key += "/" + scenes[scene].dynamics[scenes[scene].dynamics.length-1].obj.ObjName;
-    scenes[scene].dynamicNames[key] = scenes[scene].dynamicCount+1;
+    scenes[scene].dynamicNames[key] = scenes[scene].dynamicCount;
+    scenes[scene].dynamicCount++;
     //Set Bbl Network Object
     var Bbl = lib.MessageData.Capsule("Bbl", new lib.Vector3(0, 0, 0.75), new lib.Vector3(0.5, 0.4, 0.5), new lib.Vector3(90, 90, 0),"Color.cyan");
     Bbl.obj.ObjParent = "Player" + playerid + "/Main Camera";
     scenes[scene].dynamics.push(Bbl);
-    key += "/" + scenes[scene].dynamics[scenes[scene].dynamics.length-1].obj.ObjName;
-    scenes[scene].dynamicNames[key] = scenes[scene].dynamicCount+2;
-    scenes[scene].dynamicCount += 3;
+    scenes[scene].dynamicNames[key + "/" + scenes[scene].dynamics[scenes[scene].dynamics.length-1].obj.ObjName] = scenes[scene].dynamicCount;
+    scenes[scene].dynamicCount++;
 
     for (var i = 0; i < wsS.length; i++) {
         if (wsS[i] == null || i == playerid) { continue; }
@@ -97,7 +98,7 @@ wss.on('connection', websocket => {
     Player.obj.ObjScripts.push("PlayerController");
     Player.addModVars([
         "UnityEngine.Rigidbody", "2", "collisionDetectionMode", "ContinuousDynamic", "freezeRotation", "true", 
-        "PlayerController", "4", "moveSpeed", "10", "sensitivityX", "7.5", "sensitivityY", "5", "jumpForce", "5", 
+        "PlayerController", "4", "moveSpeed", "10", "sensitivityX", "2", "sensitivityY", "2.5", "jumpForce", "5", 
         "UnityEngine.CapsuleCollider", "2", "height", "4", "radius", "1",
         "UnityEngine.GameObject","1","layer","2"
     ]);
@@ -157,8 +158,11 @@ wss.on('connection', websocket => {
 		}
 	});
 	websocket.on('message', message => {
+        if (message == "") { return; }
+        //console.log(message);
         try {
             var msg = JSON.parse(message);
+            //console.log(message);
             if (msg.list == null || msg.list.length <= 0) {
                 if (receiveMes(msg)) {
                     if (msg.modifyId == "") { msg.modifyId = -1; }
@@ -173,6 +177,8 @@ wss.on('connection', websocket => {
             } else {
                 var newLst = []
                 for(var i = 0; i < msg.list.length; i++) {
+                    msg.list[i].modifyId = msg.modifyId;
+                    //console.log(JSON.stringify(msg.list[i]))
                     if (receiveMes(msg.list[i])) {
                         newLst.push(msg.list[i]);
                     }
@@ -380,7 +386,7 @@ function receiveMes(msg) {
             var data = new lib.MessageData("Create",msg.ObjName,msg.ObjParent,msg.Pos != null ? lib.Vector3.fromObject(msg.Pos) : null,msg.Scale != null ? lib.Vector3.fromObject(msg.Scale) : null,msg.Rot != null ? lib.Vector3.fromObject(msg.Rot) : null,msg.ObjFindName,msg.ObjScripts,msg.ModScriptVars);
             if (msg.modifyId == "") { msg.modifyId = -1; }
             for(var i = 0; i < wsS.length; i++) {
-                if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
+                if (wsS[i] == null){ continue; }
                 data.Send(wsS[i]);
             }
             scenes[0].dynamics.push(data);

@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour {
     public Rigidbody grabbed = null;
     public Rigidbody rigid;
     private GameObject pauseOverlay;
+    private MessageData cubeData = new MessageData();
 
     public Vector3 oldPos;
     Vector3 oldRot;
@@ -31,46 +32,67 @@ public class PlayerController : MonoBehaviour {
         rigid = gameObject.GetComponent<Rigidbody>();
         oldPos = transform.position;
         pauseOverlay = GameObject.Find("Canvas").transform.Find("PauseOverlay").gameObject;
+        
+        cubeData.MessageType = "Create";
+        cubeData.ObjScripts = new string[] {
+            "UnityEngine.MeshFilter",
+            "UnityEngine.MeshRenderer",
+            "UnityEngine.BoxCollider",
+            "UnityEngine.Rigidbody",
+            "NetworkObj"
+        };
+        cubeData.ModScriptVars = new string[] {
+            "UnityEngine.MeshFilter","1","mesh","Default.Mesh.Cube,fbx",
+            "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse",
+            "UnityEngine.Rigidbody","1","velocity","(0,0,0)"
+        };
+        cubeData.Scale = new Vector3(2,2,2);
     }
     private void FixedUpdate() {
         if (transform.childCount == 0) { return; }
+        rigid.velocity = new Vector3(0,rigid.velocity.y,0);
+        //check on ground
         int layerMask = 1 << 2;
         layerMask = ~layerMask;
         RaycastHit hit;
-        if (Physics.SphereCast(transform.position, 2, -Vector3.up, out hit, 1.3f, layerMask, QueryTriggerInteraction.Ignore)) {
+        if (Physics.Raycast(transform.position, -Vector3.up, out hit, 2.2f, layerMask)) {
             onGround = true;
         } else { onGround = false; }
 
         bool value = Statics.Instance.isPaused;
         if (!value) {
-            rigid.position += Vector3.Normalize(transform.right * Input.GetAxisRaw("Horizontal") + transform.forward * Input.GetAxisRaw("Vertical")) * moveSpeed * Time.deltaTime;
+            float horiz = Input.GetAxisRaw("Horizontal");
+            float verti = Input.GetAxisRaw("Vertical");
+            if (horiz != 0 || verti != 0) { rigid.position += Vector3.Normalize(transform.right * horiz + transform.forward * verti) * moveSpeed * Time.deltaTime; }
             
             float lookHorizontal = Input.GetAxisRaw("Mouse X");
             float lookVertical = Input.GetAxisRaw("Mouse Y");
-            transform.localEulerAngles = new Vector3(0,lookHorizontal*sensitivityX + transform.localEulerAngles.y,0);
-            Camera.main.transform.localEulerAngles = new Vector3(lookVertical*-sensitivityY + Camera.main.transform.localEulerAngles.x,0,0);
+            if ( lookHorizontal != 0) { transform.localEulerAngles = new Vector3(0,lookHorizontal*sensitivityX + transform.localEulerAngles.y,0); }
+            if ( lookVertical != 0) { Camera.main.transform.localEulerAngles = new Vector3(lookVertical*-sensitivityY + Camera.main.transform.localEulerAngles.x,0,0); }
             if (Input.GetKeyDown(KeyCode.Space) && onGround) {
-                rigid.velocity += new Vector3(0,10,0);
+                rigid.velocity += new Vector3(0,jumpForce,0);
             }
             if (Input.GetKeyDown(KeyCode.H)) {
-                MessageData data = new MessageData();
-                data.MessageType = "Create";
-                data.ObjScripts = new string[] {
-                    "UnityEngine.MeshFilter",
-                    "UnityEngine.MeshRenderer",
-                    "UnityEngine.BoxCollider",
-                    "UnityEngine.Rigidbody",
-                    "NetworkObj"
-                };
                 Vector3 frwdVc = Camera.main.transform.forward*jumpForce*2;
-                data.ModScriptVars = new string[] {
-                    "UnityEngine.MeshFilter","1","mesh","Default.Mesh.Cube,fbx",
-                    "UnityEngine.MeshRenderer","1","materials[0]","Default.Mat.Default-Diffuse",
-                    "UnityEngine.Rigidbody","1","velocity","(" + frwdVc.x + "," + frwdVc.y + "," + frwdVc.z + ")"
-                };
-                data.Pos = transform.position + Vector3.Normalize(transform.GetChild(0).forward)*10;
-                data.Scale = new Vector3(2,2,2);
-                WebsocketHandler.Instance.send(data);
+                cubeData.ModScriptVars[11] = "(" + frwdVc.x + "," + frwdVc.y + "," + frwdVc.z + ")";
+                cubeData.Pos = transform.position + Vector3.Normalize(transform.GetChild(0).forward)*10;
+                WebsocketHandler.Instance.send(cubeData);
+            }
+            bool down = Input.GetMouseButton(0);
+            if (down && (!mousedown || grabbed == null)) {
+                mousedown = true;
+                if (Physics.Raycast(transform.GetChild(0).position, Vector3.Normalize(transform.GetChild(0).forward), out hit, 8, layerMask)) {
+                    if (hit.rigidbody != null) { grabbed = hit.rigidbody; }
+                }
+            } else if (!down && mousedown) {
+                mousedown = false;
+                grabbed = null;
+            }
+            if (mousedown && grabbed != null) {
+                Vector3 pos1 = transform.GetChild(0).position + Vector3.Normalize(transform.GetChild(0).forward)*6;
+                if ((pos1 - grabbed.transform.position).magnitude > 0.1f) {
+                    grabbed.velocity += pos1-grabbed.transform.position;
+                }
             }
         }
         if (Input.GetKeyDown(KeyCode.Escape)) {
@@ -86,28 +108,6 @@ public class PlayerController : MonoBehaviour {
                 pauseOverlay.SetActive(false);
             }
         }
-        if (Input.GetMouseButton(0) && !mousedown) {
-            mousedown = true;
-            if (Physics.Raycast(transform.GetChild(0).position, Vector3.Normalize(transform.GetChild(0).forward), out hit, 8, layerMask)) {
-                if (hit.rigidbody != null) {
-                    grabbed = hit.rigidbody;
-                }
-            }
-        } else if (!Input.GetMouseButton(0) && mousedown) {
-            mousedown = false;
-            grabbed = null;
-        }
-        if (mousedown && grabbed != null) {
-            Vector3 pos1 = transform.GetChild(0).position + Vector3.Normalize(transform.GetChild(0).forward)*6;
-            /*
-            if (Mathf.Abs((pos1 - grabbed.transform.position).magnitude) > 2f) {
-                grabbed.position = pos1 + Vector3.Normalize(grabbed.transform.position - pos1)*2;
-            }
-            */
-            if ((pos1 - grabbed.transform.position).magnitude > 0.1f) {
-                grabbed.velocity += pos1-grabbed.transform.position;
-            }
-        }
     }
     public MessageData getPos() {
         if ((oldPos - transform.position).magnitude >= 0.1) {
@@ -116,7 +116,6 @@ public class PlayerController : MonoBehaviour {
             posdata.MessageType = "Modify";
             posdata.ObjFindName = transform.name;
             posdata.Pos = transform.position;
-            posdata.modifyId = transform.name.Split("Player")[1];
             /*
             Vector3 vel = rigid.velocity;
             posdata.ModScriptVars = new string[]{
@@ -134,7 +133,6 @@ public class PlayerController : MonoBehaviour {
             rotdata.MessageType = "Modify";
             rotdata.ObjFindName = transform.name + "/Main Camera";
             rotdata.Rot = Camera.main.transform.eulerAngles;
-            rotdata.modifyId = transform.name.Split("Player")[1];
             return rotdata;
         }
         return null;

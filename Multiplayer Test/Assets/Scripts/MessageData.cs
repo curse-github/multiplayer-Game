@@ -20,53 +20,54 @@ public class MessageData {
     }
     public string encodeMessage() {
         string str = "{";
-
         if (MessageType != null) {
             str += "\"MessageType\":\"" + MessageType + "\",";
-        } else if (list.Length <= 0) { return "{}"; }
-        if (ObjName != null) {
-            str += "\"ObjName\":\"" + ObjName + "\",";
-        }
-        if (ObjParent != null) {
-            str += "\"ObjParent\":\"" + ObjParent + "\",";
-        }
-        if (Pos != null && Pos != new Vector3(0.0114f,0,0)) {
-            str += "\"Pos\":{\"x\":" + Pos.x + ",\"y\":" + Pos.y + ",\"z\":" + Pos.z + "},";
-        }
-        if (Scale != null && Scale != new Vector3(0.0114f,0,0)) {
-            str += "\"Scale\":{\"x\":" + Scale.x + ",\"y\":" + Scale.y + ",\"z\":" + Scale.z + "},";
-        }
-        if (Rot != null && Rot != new Vector3(0.0114f,0,0)) {
-            str += "\"Rot\":{\"x\":" + Rot.x + ",\"y\":" + Rot.y + ",\"z\":" + Rot.z + "},";
-        }
-        if (ObjFindName != null) {
-            str += "\"ObjFindName\":\"" + ObjFindName + "\",";
-        }
-        if (ObjScripts != null && ObjScripts.Length > 0) {
-            str += "\"ObjScripts\":[";
-            for (int i = 0; i < ObjScripts.Length; i++) {
-                str += "\"" + ObjScripts[i] + "\"" + (i != ObjScripts.Length-1 ? "," : "");
+            if (ObjName != null) {
+                str += "\"ObjName\":\"" + ObjName + "\",";
             }
-            str += "],";
-        }
-        if (ModScriptVars != null && ModScriptVars.Length > 0) {
-            str += "\"ModScriptVars\":[";
-            for (int i = 0; i < ModScriptVars.Length; i++) {
-                str += "\"" + ModScriptVars[i] + "\"" + (i != ModScriptVars.Length-1 ? "," : "");
+            if (ObjParent != null) {
+                str += "\"ObjParent\":\"" + ObjParent + "\",";
             }
-            str += "],";
-        }
-        if (modifyId != null) {
-            str += "\"modifyId\":\"" + modifyId + "\",";
-        }
-        if (list != null && list.Length > 0) {
+            if (Pos != null && Pos != new Vector3(0.0114f,0,0)) {
+                str += "\"Pos\":{\"x\":" + Mathf.Round(Pos.x*100)/100 + ",\"y\":" + Mathf.Round(Pos.y*100)/100 + ",\"z\":" + Mathf.Round(Pos.z*100)/100 + "},";
+            }
+            if (Scale != null && Scale != new Vector3(0.0114f,0,0)) {
+                str += "\"Scale\":{\"x\":" + Mathf.Round(Scale.x*100)/100 + ",\"y\":" + Mathf.Round(Scale.y*100)/100 + ",\"z\":" + Mathf.Round(Scale.z*100)/100 + "},";
+            }
+            if (Rot != null && Rot != new Vector3(0.0114f,0,0)) {
+                str += "\"Rot\":{\"x\":" + Mathf.Round(Rot.x*100)/100 + ",\"y\":" + Mathf.Round(Rot.y*100)/100 + ",\"z\":" + Mathf.Round(Rot.z*100)/100 + "},";
+            }
+            if (ObjFindName != null) {
+                str += "\"ObjFindName\":\"" + ObjFindName + "\",";
+            }
+            if (ObjScripts != null && ObjScripts.Length > 0) {
+                str += "\"ObjScripts\":[";
+                for (int i = 0; i < ObjScripts.Length; i++) {
+                    str += "\"" + ObjScripts[i] + "\"" + (i != ObjScripts.Length-1 ? "," : "");
+                }
+                str += "],";
+            }
+            if (ModScriptVars != null && ModScriptVars.Length > 0) {
+                str += "\"ModScriptVars\":[";
+                for (int i = 0; i < ModScriptVars.Length; i++) {
+                    str += "\"" + ModScriptVars[i] + "\"" + (i != ModScriptVars.Length-1 ? "," : "");
+                }
+                str += "],";
+            }
+            if (modifyId != null) {
+                str += "\"modifyId\":\"" + modifyId + "\",";
+            }
+        } else if (list != null && list.Length > 0) {
             str += "\"list\":[";
             for (int i = 0; i < list.Length; i++) {
                 string encode = list[i].encodeMessage();
                 str += encode + (i != list.Length-1 ? "," : "");
             }
-            str += "] ";
-        }
+            str += "],";
+            if (modifyId != null) {
+                str += "\"modifyId\":\"" + modifyId + "\",";
+            }
+        } else { return "{}"; }
         return str.Remove(str.Length - 1, 1) + "}";
     }
 }
