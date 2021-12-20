@@ -25,6 +25,8 @@ public class ServerReceiver : MonoBehaviour
 
     public List<string> toProcess = new List<string>();
     public bool isProcessing = false;
+    private List<GameObject> objs = new List<GameObject>();
+    private List<string> objNames = new List<string>();
 
     public void Proccess(string message) {
         toProcess.Add(message);
@@ -158,7 +160,12 @@ public class ServerReceiver : MonoBehaviour
                 }
             } else if (decoded.MessageType == "Modify" && decoded.ObjFindName != null)
             {
-                GameObject obj = GameObject.Find(decoded.ObjFindName);
+                if (objNames.IndexOf(decoded.ObjFindName) == -1) {
+                    //print("adding " + decoded.ObjFindName + " to array.");
+                    objNames.Add(decoded.ObjFindName);
+                    objs.Add(GameObject.Find(decoded.ObjFindName));
+                }// else { print("had " + decoded.ObjFindName + " on array already."); }
+                GameObject obj = objs[objNames.IndexOf(decoded.ObjFindName)];
                 //change object name
                 if (decoded.ObjName != null && decoded.ObjName != "" && decoded.ObjName != obj.name)
                 {
@@ -248,8 +255,17 @@ public class ServerReceiver : MonoBehaviour
                     }
                 }
             } else if ((decoded.MessageType == "Delete" || decoded.MessageType == "Remove" || decoded.MessageType == "Destroy") && decoded.ObjFindName != null) {
-                GameObject obj = GameObject.Find(decoded.ObjFindName);
-                GameObject.Destroy(obj);
+                if (objNames.IndexOf(decoded.ObjFindName) == -1) {
+                    //print("gameobject " + decoded.ObjFindName + " was not in array.");
+                    GameObject obj = GameObject.Find(decoded.ObjFindName);
+                    GameObject.Destroy(obj);
+                } else {
+                    print("had gameobject " + decoded.ObjFindName + " in array.");
+                    GameObject obj = objs[objNames.IndexOf(decoded.ObjFindName)];
+                    GameObject.Destroy(obj);
+                    objs.RemoveAt(objNames.IndexOf(decoded.ObjFindName));
+                    objNames.RemoveAt(objNames.IndexOf(decoded.ObjFindName));
+                }
             } else if (decoded.MessageType == "ping") {
                 WebsocketHandler.Instance.sendnow("{\"MessageType\":\"pong\",\"ObjName\":\"" + decoded.ObjName + "\"}");
             }
