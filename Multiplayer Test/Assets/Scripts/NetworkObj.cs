@@ -37,7 +37,7 @@ public class NetworkObj : MonoBehaviour
             oldRot = transform.localEulerAngles;
             data.Rot = transform.localEulerAngles;
             
-            ModScriptVars.Add("UnityEngine.Rigdbody");
+            ModScriptVars.Add("UnityEngine.Rigidbody");
             ModScriptVars.Add((1 + (positionChange ? 1 : 0)).ToString());
             ModScriptVars.Add("angularVelocity");
             ModScriptVars.Add("(" + rigid.angularVelocity.x + "," + rigid.angularVelocity.y + "," + rigid.angularVelocity.z + ")");
@@ -47,7 +47,7 @@ public class NetworkObj : MonoBehaviour
             data.Pos = transform.position;
 
             if (ModScriptVars.Count == 0) {
-                ModScriptVars.Add("UnityEngine.Rigdbody");
+                ModScriptVars.Add("UnityEngine.Rigidbody");
                 ModScriptVars.Add("1");
             }
             ModScriptVars.Add("velocity");
