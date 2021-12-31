@@ -98,7 +98,7 @@ wss.on('connection', websocket => {
     Player.obj.ObjScripts.push("PlayerController");
     Player.addModVars([
         "UnityEngine.Rigidbody", "2", "collisionDetectionMode", "ContinuousDynamic", "freezeRotation", "true", 
-        "PlayerController", "4", "moveSpeed", "10", "sensitivityX", "2", "sensitivityY", "2.5", "jumpForce", "5", 
+        "PlayerController", "4", "moveSpeed", "10", "sensitivityX", "2", "sensitivityY", "2.5", "jumpForce", "10", 
         "UnityEngine.CapsuleCollider", "2", "height", "4", "radius", "1",
         "UnityEngine.GameObject","1","layer","2"
     ]);
