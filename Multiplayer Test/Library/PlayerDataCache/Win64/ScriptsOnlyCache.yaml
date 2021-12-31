@@ -558,5 +558,5 @@ ScriptsOnlyBuild:
   platform: 19
   scenePathNames:
   - Assets/Scenes/SampleScene.unity
-  playerPath: C:/Users/Curse/Desktop/programming/Unity/Multiplayer Test/Build/Multiplayer
+  playerPath: C:/Users/Curse/Desktop/programming/Unity/Multiplayer Test/Build2/Multiplayer
     Test.exe
