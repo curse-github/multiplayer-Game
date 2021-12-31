@@ -215,7 +215,7 @@ ScriptsOnlyBuild:
     className: CanvasScaler
   - hash:
       serializedVersion: 2
-      Hash: 46bb03d785ce59cdc3e0628f4f3b4ba3
+      Hash: 5f341c5c34c3b38af0d439d51d785c24
     assemblyName: Assembly-CSharp.dll
     namespaceName: 
     className: WebsocketHandler

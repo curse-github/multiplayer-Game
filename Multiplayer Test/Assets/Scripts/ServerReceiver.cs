@@ -27,19 +27,14 @@ public class ServerReceiver : MonoBehaviour
     public bool isProcessing = false;
     private List<GameObject> objs = new List<GameObject>();
     private List<string> objNames = new List<string>();
+    public static int received = 0;
+    private int proccessed = 0;
 
-    public void Proccess(string message) {
-        toProcess.Add(message);
-        Proccess(true);
-    }
     public void Proccess() {
-        Proccess(false);
-    }
-    public void Proccess(bool overrideProccessing) {
         string notDecoded = "";
         MessageData decoded = new MessageData();
         try {
-            if (toProcess.Count <= 0 || (isProcessing && !overrideProccessing)) { return; }
+            if (toProcess.Count <= 0 || isProcessing) { return; }
             isProcessing = true;
             notDecoded = toProcess[0];
             decoded = MessageData.decodeMessage(notDecoded);
@@ -167,8 +162,7 @@ public class ServerReceiver : MonoBehaviour
                 }// else { print("had " + decoded.ObjFindName + " on array already."); }
                 GameObject obj = objs[objNames.IndexOf(decoded.ObjFindName)];
                 //change object name
-                if (decoded.ObjName != null && decoded.ObjName != "" && decoded.ObjName != obj.name)
-                {
+                if (decoded.ObjName != null && decoded.ObjName != "" && decoded.ObjName != obj.name) {
                     obj.name = decoded.ObjName;
                 }
                 //change object parent
@@ -269,7 +263,9 @@ public class ServerReceiver : MonoBehaviour
             } else if (decoded.MessageType == "ping") {
                 WebsocketHandler.Instance.sendnow("{\"MessageType\":\"pong\",\"ObjName\":\"" + decoded.ObjName + "\"}");
             }
-            if (!overrideProccessing) { isProcessing = false; }
+            isProcessing = false;
+
+            if (toProcess.Count > 0) { Proccess(); }
         } catch (Exception e) {
             print(decoded.MessageType);
             print(decoded.ObjName);
@@ -305,13 +301,15 @@ public class ServerReceiver : MonoBehaviour
         }
         isProcessing = false;
     }
-    private void Update()
+    private void FixedUpdate()
     {
         if (!isProcessing && toProcess.Count > 0) {
             //print(toProcess[0]);
-            if (toProcess[0].StartsWith("{\"list\":[")) {
+            if (startswith(toProcess[0],"{\"list\":[")) {
                 proccessList();
-            } else { Proccess(); }
+            } else {
+                Proccess();
+            }
         }
     }
     public static Type GetType(string TypeName)
@@ -362,17 +360,17 @@ public class ServerReceiver : MonoBehaviour
         return null;
     }
     public object stringToObj(string one, Type propType) {
-        if (one.StartsWith("Statics.")) {
+        if (startswith(one,"Statics.")) {
             return Statics.getValue(one.Split("Statics.")[1]);
-        } else if (one.StartsWith("Default.Mesh.")) {
+        } else if (startswith(one,"Default.Mesh.")) {
             //Cube.fbx
             //Capsule.fbx
             return Resources.GetBuiltinResource<Mesh>(one.Split("Default.Mesh.")[1].Replace(",","."));
-        } else if (one.StartsWith("Default.Mat.")) {
+        } else if (startswith(one,"Default.Mat.")) {
             //Sprites-Default.mat
             //Default-Diffuse.mat
             return GetMat(one.Split("Default.Mat.")[1]);
-        } else if (one.StartsWith("Create.Mat.")) {
+        } else if (startswith(one,"Create.Mat.")) {
             //Sprites-Default.mat
             //Default-Diffuse.mat
             string color = one.Split("Create.Mat.")[1];
@@ -420,5 +418,16 @@ public class ServerReceiver : MonoBehaviour
             print("Unsupported type: " + propType.ToString());
             return null;
         }
+    }
+    public bool startswith(string one, string two) {
+        if (one == two) { return true; }
+        int len = two.Length;
+        string tempstr = "";
+        if (len < one.Length) {
+            for (int i = 0; i < len; i++) {
+                tempstr += one[i];
+            }
+        }
+        return tempstr == two;
     }
 }

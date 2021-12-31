@@ -28,6 +28,7 @@ public class WebsocketHandler : MonoBehaviour
     public string modifyId = "";
     public static string sending = "";
     public bool isalive = false;
+    public List<NetworkObj> objs = new List<NetworkObj>();
     void Start() {
         Connect();
     }

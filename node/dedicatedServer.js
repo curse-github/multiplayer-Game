@@ -81,9 +81,7 @@ wss.on('connection', websocket => {
 
     for (var i = 0; i < wsS.length; i++) {
         if (wsS[i] == null || i == playerid) { continue; }
-        PlayerDyn.Send(wsS[i]);
-        Camera.Send(wsS[i]);
-        Bbl.Send(wsS[i]);
+        wsS[i].send(JSON.stringify({"list":[PlayerDyn,Camera,Bbl]}))
     }
     //console.log(JSON.stringify(PlayerDyn.obj));
     //console.log(JSON.stringify(Camera.obj));
@@ -92,6 +90,8 @@ wss.on('connection', websocket => {
     //instantiate same objects
     SendList = {"list":[]};
 
+
+    //create player
     var Player = lib.MessageData.Capsule("Player" + playerid,startingPos,null,null,"Color.red");
     Player.obj.ObjScripts.push("UnityEngine.Rigidbody");
     Player.obj.ObjScripts.push("UnityEngine.CapsuleCollider");
@@ -103,18 +103,17 @@ wss.on('connection', websocket => {
         "UnityEngine.GameObject","1","layer","2"
     ]);
     SendList.list.push(Player);
-    
     SendList.list.push(Modify("Main Camera", null, "Player" + playerid, new lib.Vector3(0, 1, 0), null, null, null, [
         "UnityEngine.Camera", "1", "nearClipPlane", "0.3"
     ]));
-    SendList.list.push(Modify("Directional Light", null, null, null, null, null, null, ["UnityEngine.Light", "1", "intensity", "0.25"]));
-
     var Bbl = lib.MessageData.Capsule("Bbl", new lib.Vector3(0, 0, 0.75), new lib.Vector3(0.5, 0.4, 0.5), new lib.Vector3(90, 90, 0),"Color.cyan");
     Bbl.obj.ObjParent = "Player" + playerid + "/Main Camera";
     Bbl.addModVars([
         "UnityEngine.GameObject", "1", "layer", "2"
     ]);
     SendList.list.push(Bbl);
+    //setup light
+    SendList.list.push(Modify("Directional Light", null, null, null, null, null, null, ["UnityEngine.Light", "1", "intensity", "0.25"]));
 
     websocket.send(JSON.stringify(SendList));
     startingPos = new lib.Vector3(startingPos.x, startingPos.y+4, startingPos.z);
@@ -168,27 +167,16 @@ wss.on('connection', websocket => {
                     if (msg.modifyId == "") { msg.modifyId = -1; }
                     for(var i = 0; i < wsS.length; i++) {
                         if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
-                        if (msg.ObjName.includes("Cube") || msg.ObjName.includes("Object")) {
-                            console.log("Player" + (Number(msg.modifyId)+1) + " sent " + msg.ObjFindName + " to " + "Player" + (i+1));
-                        }
                         wsS[i].send(message);
                     }
                 }
             } else {
-                var newLst = []
                 for(var i = 0; i < msg.list.length; i++) {
                     msg.list[i].modifyId = msg.modifyId;
-                    //console.log(JSON.stringify(msg.list[i]))
                     if (receiveMes(msg.list[i])) {
-                        newLst.push(msg.list[i]);
-                    }
-                }
-                if (newLst.length > 0) {
-                    if (msg.modifyId == "") { msg.modifyId = -1; }
-                    for(var i = 0; i < wsS.length; i++) {
-                        if (wsS[i] == null || i == Number(msg.modifyId)){ continue; }
-                        for (var j = 0; j < newLst.length; j++) {
-                            wsS[i].send(JSON.stringify(newLst[j]));
+                        for(var j = 0; j < wsS.length; j++) {
+                            if (wsS[j] == null || j == Number(msg.modifyId)) { continue; }
+                            wsS[j].send(JSON.stringify(msg.list[i]));
                         }
                     }
                 }
