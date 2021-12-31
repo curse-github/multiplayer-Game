@@ -43,7 +43,7 @@ public class WebsocketHandler : MonoBehaviour
         };
         ws.EmitOnPing = true;
         ws.OnMessage += (sender, e) => {
-            ServerReceiver.Instance.toProcess.Add(e.Data);
+            ServerReceiver.Instance.toProcess.Insert(0,e.Data);
         };
         ws.OnError += (sender, e) => {
             Debug.Log("WebSocket Error Message: " + e.Message);
